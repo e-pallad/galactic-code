@@ -25,7 +25,7 @@ interface MapData {
 
 async function getMapData(slug: string): Promise<MapData | null> {
   try {
-    const data = await import(`@/content/star-maps/${slug}.json`, { assert: { type: "json" } }) as { default: MapData }
+    const data = await import(`@/content/star-maps/${slug}.json`, { with: { type: "json" } }) as { default: MapData }
     return data.default
   } catch {
     return null

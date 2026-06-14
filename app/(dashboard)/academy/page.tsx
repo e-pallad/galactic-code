@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
 import { db } from "@/lib/db"
-import { starSystems, sectors, missions, missionProgress, operations } from "@/lib/db/schema"
+import { starSystems, missions, missionProgress, operations } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { StarSystemCard } from "@/components/academy/star-system-card"
 
@@ -21,16 +21,11 @@ export default async function AcademyPage() {
 
   const systemIds = systems.map(s => s.id)
 
-  const [missionCounts, completedCounts, userOps] = await Promise.all([
+  const [missionCounts, userOps] = await Promise.all([
     systemIds.length > 0 ? db.select({ systemId: missions.systemId, count: sql<number>`count(*)` })
       .from(missions)
       .where(sql`system_id = ANY(ARRAY[${sql.join(systemIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
       .groupBy(missions.systemId) : Promise.resolve([]),
-    systemIds.length > 0 ? db.select({ systemId: missionProgress.missionId, count: sql<number>`count(*)` })
-      .from(missionProgress)
-      .innerJoin(missions, eq(missions.id, missionProgress.missionId))
-      .where(sql`${missionProgress.userId} = ${user.id} AND ${missionProgress.status} = 'COMPLETED'`)
-      .groupBy(missionProgress.missionId) : Promise.resolve([]),
     db.select().from(operations).where(eq(operations.userId, user.id)),
   ])
 

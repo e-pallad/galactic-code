@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { skillCheckAttempts } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
+import { XP_VALUES } from "@/lib/xp"
 import { z } from "zod"
 
 const schema = z.object({
@@ -26,9 +27,9 @@ export async function POST(req: Request) {
   const perfect = score === 100
 
   let xpEarned: number
-  if (perfect) xpEarned = 35
-  else if (passed) xpEarned = 20
-  else xpEarned = 5
+  if (perfect) xpEarned = XP_VALUES.SKILL_CHECK_PERFECT
+  else if (passed) xpEarned = XP_VALUES.SKILL_CHECK_PASS
+  else xpEarned = XP_VALUES.SKILL_CHECK_ATTEMPT
 
   let result: { leveledUp: boolean; newRank: number; newXp: number }
 

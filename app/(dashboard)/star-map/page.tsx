@@ -14,7 +14,7 @@ async function getMaps(): Promise<MapMeta[]> {
     const files = await readdir(dir)
     const maps = await Promise.all(
       files.filter(f => f.endsWith(".json")).map(async f => {
-        const { default: data } = await import(`@/content/star-maps/${f}`, { assert: { type: "json" } }) as { default: MapMeta }
+        const { default: data } = await import(`@/content/star-maps/${f}`, { with: { type: "json" } }) as { default: MapMeta }
         return data
       })
     )

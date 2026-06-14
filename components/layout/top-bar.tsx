@@ -31,7 +31,7 @@ export async function TopBar() {
           </>
         )}
       </div>
-      <UserButton afterSignOutUrl="/" />
+      <UserButton />
     </header>
   )
 }

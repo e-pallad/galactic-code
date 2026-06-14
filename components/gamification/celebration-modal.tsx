@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -15,10 +15,10 @@ interface CelebrationModalProps {
 }
 
 export function CelebrationModal({ open, onClose, type, title, description, icon }: CelebrationModalProps) {
-  const prefersReducedMotion = useRef(false)
+  const [prefersReduced, setPrefersReduced] = useState(false)
 
   useEffect(() => {
-    prefersReducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    setPrefersReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
   }, [])
 
   return (
@@ -28,15 +28,15 @@ export function CelebrationModal({ open, onClose, type, title, description, icon
         <AnimatePresence>
           {open && (
             <motion.div
-              initial={prefersReducedMotion.current ? {} : { scale: 0.5, opacity: 0 }}
-              animate={prefersReducedMotion.current ? {} : { scale: 1, opacity: 1 }}
-              exit={prefersReducedMotion.current ? {} : { scale: 0.5, opacity: 0 }}
+              initial={prefersReduced ? {} : { scale: 0.5, opacity: 0 }}
+              animate={prefersReduced ? {} : { scale: 1, opacity: 1 }}
+              exit={prefersReduced ? {} : { scale: 0.5, opacity: 0 }}
               transition={{ type: "spring", damping: 12, stiffness: 200 }}
               className="flex flex-col items-center gap-4 py-4"
             >
               {icon && (
                 <motion.div
-                  animate={prefersReducedMotion.current ? {} : { rotate: [0, -10, 10, -5, 5, 0] }}
+                  animate={prefersReduced ? {} : { rotate: [0, -10, 10, -5, 5, 0] }}
                   transition={{ duration: 0.6, delay: 0.2 }}
                   className="text-6xl"
                 >
@@ -52,8 +52,8 @@ export function CelebrationModal({ open, onClose, type, title, description, icon
                   {Array.from({ length: 5 }).map((_, i) => (
                     <motion.div
                       key={i}
-                      initial={prefersReducedMotion.current ? {} : { opacity: 0, y: 10 }}
-                      animate={prefersReducedMotion.current ? {} : { opacity: 1, y: 0 }}
+                      initial={prefersReduced ? {} : { opacity: 0, y: 10 }}
+                      animate={prefersReduced ? {} : { opacity: 1, y: 0 }}
                       transition={{ delay: 0.3 + i * 0.1 }}
                       className="w-2 h-2 rounded-full bg-[#06B6D4]"
                     />

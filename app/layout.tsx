@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Analytics } from "@vercel/analytics/react"
 import { Toaster } from "@/components/ui/toaster"
+import { SwRegister } from "@/components/sw-register"
 import "./globals.css"
 
 const spaceGrotesk = Space_Grotesk({
@@ -25,12 +26,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider afterSignOutUrl="/">
       <html lang="en" className={`${spaceGrotesk.variable} ${inter.variable} dark`} suppressHydrationWarning>
         <body className="min-h-screen bg-[#080C14] text-[#e2e8f0] antialiased">
           {children}
           <Toaster />
           <Analytics />
+          <SwRegister />
         </body>
       </html>
     </ClerkProvider>
