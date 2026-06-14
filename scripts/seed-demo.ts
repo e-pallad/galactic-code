@@ -1,95 +1,105 @@
-import { drizzle } from "drizzle-orm/neon-http"
-import { neon } from "@neondatabase/serverless"
-import * as schema from "../lib/db/schema"
-import { eq } from "drizzle-orm"
-import "dotenv/config"
-
-const sql = neon(process.env.DATABASE_URL!)
-const db = drizzle(sql, { schema })
+import { db } from "@/lib/db"
+import { tracks, starSystems, sectors, missions, users } from "@/lib/db/schema"
+import { eq, asc } from "drizzle-orm"
 
 async function seed() {
-  console.log("Seeding demo data…")
+  console.log("🚀 Seeding demo data...")
 
-  const tracksData: (typeof schema.tracks.$inferInsert)[] = [
-    { id: "javascript", name: "JavaScript", characterClass: "Code Pilot", icon: "⚡", description: "Master the language of the web. Build interactive UIs, APIs, and full-stack apps." },
-    { id: "python", name: "Python", characterClass: "Data Mage", icon: "🔮", description: "Wield the power of Python for data science, automation, and backend development." },
-  ]
+  // Insert tracks
+  await db.insert(tracks).values([
+    { id: "javascript", name: "JavaScript", characterClass: "Code Pilot", icon: "⚡", description: "Master JavaScript from fundamentals to full-stack web development." },
+    { id: "python", name: "Python", characterClass: "Data Mage", icon: "🔮", description: "Wield Python for data science, automation, and backend systems." },
+  ]).onConflictDoNothing()
 
-  for (const track of tracksData) {
-    await db.insert(schema.tracks).values(track).onConflictDoNothing()
-  }
+  console.log("✓ Tracks seeded")
 
-  const [jsSystem] = await db
-    .insert(schema.starSystems)
-    .values({
-      trackId: "javascript",
-      number: 1,
-      title: "JavaScript Foundations",
-      description: "Master variables, functions, control flow, and the DOM. Your first month in the JS galaxy.",
-      operationTitle: "Build an Interactive To-Do App",
-      operationDescription: "Create a full-featured to-do app with add, complete, and delete functionality using vanilla JavaScript and the DOM API.",
-    })
-    .onConflictDoNothing()
-    .returning()
+  // Insert star systems
+  const [jsSystem] = await db.insert(starSystems).values({
+    trackId: "javascript",
+    number: 1,
+    title: "JavaScript Foundations",
+    description: "Master the core pillars of JavaScript: variables, functions, and control flow.",
+    operationTitle: "Build a CLI Calculator",
+    operationDescription: "Create a command-line calculator that handles basic arithmetic operations using pure JavaScript.",
+  }).onConflictDoNothing().returning()
 
+  const [pySystem] = await db.insert(starSystems).values({
+    trackId: "python",
+    number: 1,
+    title: "Python Foundations",
+    description: "Learn Python syntax, data types, and foundational programming concepts.",
+    operationTitle: "Build a Data Analyzer",
+    operationDescription: "Create a Python script that reads a CSV file and outputs statistical summaries.",
+  }).onConflictDoNothing().returning()
+
+  console.log("✓ Star systems seeded")
+
+  // Create sectors for JS system
   if (jsSystem) {
-    const sectorData = [
+    const jsSectors = await db.insert(sectors).values([
       { systemId: jsSystem.id, number: 1, theme: "Variables & Data Types" },
-      { systemId: jsSystem.id, number: 2, theme: "Functions & Control Flow" },
-    ]
+      { systemId: jsSystem.id, number: 2, theme: "Functions & Scope" },
+    ]).onConflictDoNothing().returning()
 
-    for (const sectorRow of sectorData) {
-      const [sector] = await db.insert(schema.sectors).values(sectorRow).onConflictDoNothing().returning()
-      if (!sector) continue
-
-      const missionData: (typeof schema.missions.$inferInsert)[] = sector.number === 1
-        ? [
-            { sectorId: sector.id, systemId: jsSystem.id, number: 1, title: "What is JavaScript?", type: "briefing", durationMinutes: 10, description: "JavaScript is the scripting language of the web. In this mission, you'll learn what JS is, how browsers execute it, and why it's the foundation of modern web development." },
-            { sectorId: sector.id, systemId: jsSystem.id, number: 2, title: "Variables & let/const/var", type: "training-op", durationMinutes: 20, description: "Declare your first variables. Understand the difference between let, const, and var, and when to use each." },
-            { sectorId: sector.id, systemId: jsSystem.id, number: 3, title: "Sector Debrief", type: "debrief", durationMinutes: 10, description: "Review everything from Sector 1. Consolidate your understanding of JS basics and data types." },
-          ]
-        : [
-            { sectorId: sector.id, systemId: jsSystem.id, number: 4, title: "Declaring Functions", type: "briefing", durationMinutes: 15, description: "Functions are reusable blocks of code. Learn function declarations, expressions, and the differences between them." },
-            { sectorId: sector.id, systemId: jsSystem.id, number: 5, title: "Arrow Functions & Closures", type: "training-op", durationMinutes: 25, description: "Arrow functions offer a concise syntax. Closures let inner functions access outer scope — a core JS concept." },
-            { sectorId: sector.id, systemId: jsSystem.id, number: 6, title: "Control Flow Strike Mission", type: "strike-mission", durationMinutes: 30, description: "Build a number guessing game using if/else, loops, and user input. Apply your function knowledge in a real challenge." },
-          ]
-
-      for (const mission of missionData) {
-        await db.insert(schema.missions).values(mission).onConflictDoNothing()
-      }
-    }
-  }
-
-  const [pySystem] = await db
-    .insert(schema.starSystems)
-    .values({
-      trackId: "python",
-      number: 1,
-      title: "Python Foundations",
-      description: "Learn Python syntax, data structures, and OOP fundamentals. Your first month as a Data Mage.",
-      operationTitle: "Build a Data Analyzer CLI",
-      operationDescription: "Create a command-line tool that reads a CSV file, computes statistics, and outputs a formatted report.",
-    })
-    .onConflictDoNothing()
-    .returning()
-
-  if (pySystem) {
-    const [sector] = await db.insert(schema.sectors).values({ systemId: pySystem.id, number: 1, theme: "Python Basics" }).onConflictDoNothing().returning()
-    if (sector) {
-      await db.insert(schema.missions).values([
-        { sectorId: sector.id, systemId: pySystem.id, number: 1, title: "Hello Python", type: "briefing", durationMinutes: 10, description: "Your first Python mission. Learn the syntax, run your first script, and understand Python's philosophy." },
-        { sectorId: sector.id, systemId: pySystem.id, number: 2, title: "Lists & Dictionaries", type: "training-op", durationMinutes: 20, description: "Python's core data structures. Master lists and dicts to store and manipulate data effectively." },
+    if (jsSectors[0]) {
+      await db.insert(missions).values([
+        { sectorId: jsSectors[0].id, systemId: jsSystem.id, number: 1, title: "Introduction to Variables", type: "briefing", durationMinutes: 15, description: "Learn about var, let, and const and when to use each one." },
+        { sectorId: jsSectors[0].id, systemId: jsSystem.id, number: 2, title: "Data Types Deep Dive", type: "training-op", durationMinutes: 25, description: "Explore strings, numbers, booleans, null, undefined, and objects." },
+        { sectorId: jsSectors[0].id, systemId: jsSystem.id, number: 3, title: "Variables Review", type: "debrief", durationMinutes: 10, description: "Consolidate your understanding of JavaScript variables and data types." },
       ]).onConflictDoNothing()
     }
+
+    if (jsSectors[1]) {
+      await db.insert(missions).values([
+        { sectorId: jsSectors[1].id, systemId: jsSystem.id, number: 1, title: "Function Basics", type: "briefing", durationMinutes: 15, description: "Understand function declarations, expressions, and arrow functions." },
+        { sectorId: jsSectors[1].id, systemId: jsSystem.id, number: 2, title: "Scope & Closures", type: "strike-mission", durationMinutes: 30, description: "Master lexical scope and build your first closures." },
+        { sectorId: jsSectors[1].id, systemId: jsSystem.id, number: 3, title: "Functions Review", type: "debrief", durationMinutes: 10, description: "Review function patterns and scope rules." },
+      ]).onConflictDoNothing()
+    }
+
+    console.log("✓ JS missions seeded")
   }
 
-  const [firstUser] = await db.select().from(schema.users).limit(1)
+  // Create sectors for Python system
+  if (pySystem) {
+    const pySectors = await db.insert(sectors).values([
+      { systemId: pySystem.id, number: 1, theme: "Python Basics" },
+      { systemId: pySystem.id, number: 2, theme: "Collections & Loops" },
+    ]).onConflictDoNothing().returning()
+
+    if (pySectors[0]) {
+      await db.insert(missions).values([
+        { sectorId: pySectors[0].id, systemId: pySystem.id, number: 1, title: "Hello, Python", type: "briefing", durationMinutes: 10, description: "Your first Python program and understanding the interpreter." },
+        { sectorId: pySectors[0].id, systemId: pySystem.id, number: 2, title: "Variables & Types", type: "training-op", durationMinutes: 20, description: "Python's dynamic typing system and core data types." },
+        { sectorId: pySectors[0].id, systemId: pySystem.id, number: 3, title: "Basics Review", type: "debrief", durationMinutes: 10, description: "Review Python fundamentals." },
+      ]).onConflictDoNothing()
+    }
+
+    if (pySectors[1]) {
+      await db.insert(missions).values([
+        { sectorId: pySectors[1].id, systemId: pySystem.id, number: 1, title: "Lists & Tuples", type: "briefing", durationMinutes: 15, description: "Python's sequence types and their operations." },
+        { sectorId: pySectors[1].id, systemId: pySystem.id, number: 2, title: "Loops & Comprehensions", type: "training-op", durationMinutes: 25, description: "Master for loops, while loops, and list comprehensions." },
+        { sectorId: pySectors[1].id, systemId: pySystem.id, number: 3, title: "Collections Review", type: "debrief", durationMinutes: 10, description: "Consolidate your knowledge of Python collections." },
+      ]).onConflictDoNothing()
+    }
+
+    console.log("✓ Python missions seeded")
+  }
+
+  // Set first user as admin
+  const [firstUser] = await db.select().from(users).orderBy(asc(users.createdAt)).limit(1)
   if (firstUser) {
-    await db.update(schema.users).set({ role: "admin" }).where(eq(schema.users.id, firstUser.id))
-    console.log(`Set ${firstUser.email} as admin.`)
+    await db.update(users).set({ role: "admin" }).where(eq(users.id, firstUser.id))
+    console.log(`✓ Set ${firstUser.email} as admin`)
+  } else {
+    console.log("ℹ No users found — skipping admin promotion")
   }
 
-  console.log("Seed complete.")
+  console.log("✅ Seed complete!")
+  process.exit(0)
 }
 
-seed().catch(err => { console.error(err); process.exit(1) })
+seed().catch(err => {
+  console.error("❌ Seed failed:", err)
+  process.exit(1)
+})

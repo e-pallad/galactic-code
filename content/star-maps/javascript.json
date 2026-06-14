@@ -1,0 +1,27 @@
+{
+  "slug": "javascript",
+  "title": "JavaScript Roadmap",
+  "description": "Complete JavaScript learning path from basics to advanced",
+  "nodes": [
+    { "id": "fundamentals", "type": "topic", "label": "JS Fundamentals", "children": [
+      { "id": "variables", "type": "subtopic", "label": "Variables & Types" },
+      { "id": "functions", "type": "subtopic", "label": "Functions" },
+      { "id": "arrays", "type": "subtopic", "label": "Arrays & Objects" },
+      { "id": "async", "type": "subtopic", "label": "Async/Await" }
+    ]},
+    { "id": "dom", "type": "topic", "label": "DOM Manipulation", "children": [
+      { "id": "selectors", "type": "subtopic", "label": "Selectors & Events" },
+      { "id": "forms", "type": "subtopic", "label": "Form Handling" }
+    ]},
+    { "id": "react", "type": "topic", "label": "React", "children": [
+      { "id": "components", "type": "subtopic", "label": "Components & Props" },
+      { "id": "hooks", "type": "subtopic", "label": "Hooks" },
+      { "id": "state", "type": "subtopic", "label": "State Management" }
+    ]},
+    { "id": "node", "type": "topic", "label": "Node.js", "children": [
+      { "id": "express", "type": "subtopic", "label": "Express.js" },
+      { "id": "apis", "type": "subtopic", "label": "REST APIs" },
+      { "id": "databases", "type": "subtopic", "label": "Databases" }
+    ]}
+  ]
+}

@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     if (action === "complete") {
       const today = startOfDay(new Date()).toISOString().slice(0, 10)
-      await (tx as typeof db)
+      await tx
         .insert(dailyLogs)
         .values({ userId: user.id, date: today, missionsCompleted: 1, xpEarned: 0 })
         .onConflictDoUpdate({

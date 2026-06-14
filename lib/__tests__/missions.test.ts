@@ -2,45 +2,37 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("@/lib/db", () => ({
   db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue([]),
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockReturnThis(),
-    onConflictDoUpdate: vi.fn().mockReturnThis(),
-    onConflictDoNothing: vi.fn().mockReturnThis(),
-    returning: vi.fn().mockResolvedValue([]),
-    update: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
-    transaction: vi.fn().mockImplementation((cb: (tx: unknown) => Promise<unknown>) => cb({})),
-  },
-}))
-
-vi.mock("@/lib/db/schema", () => ({
-  users: {},
-  dailyLogs: {},
-  medals: {},
-  missionProgress: {},
-  operations: {},
-  skillCheckAttempts: {},
-}))
-
-describe("getUser", () => {
-  beforeEach(() => vi.clearAllMocks())
-
-  it("returns null when user not found", async () => {
-    const { db } = await import("@/lib/db")
-    vi.mocked(db.select).mockReturnValue({
+    select: vi.fn().mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           limit: vi.fn().mockResolvedValue([]),
         }),
       }),
-    } as never)
+    }),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoUpdate: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
+        onConflictDoNothing: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([]),
+      }),
+    }),
+    transaction: vi.fn(),
+  },
+}))
 
-    const { getUser } = await import("@/lib/missions")
-    const result = await getUser("nonexistent_clerk_id")
+import { getUser } from "@/lib/missions"
+
+describe("getUser", () => {
+  it("returns null when user not found", async () => {
+    const result = await getUser("non-existent-clerk-id")
     expect(result).toBeNull()
   })
 })

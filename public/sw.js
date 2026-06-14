@@ -1,9 +1,9 @@
-const CACHE_NAME = "galactic-code-v1"
+const CACHE_NAME = "galactic-v1"
 const OFFLINE_URL = "/offline"
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL]))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL, "/"]))
   )
   self.skipWaiting()
 })
@@ -20,7 +20,9 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(OFFLINE_URL))
+      fetch(event.request).catch(() =>
+        caches.open(CACHE_NAME).then((cache) => cache.match(OFFLINE_URL))
+      )
     )
   }
 })

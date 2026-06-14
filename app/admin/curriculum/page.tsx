@@ -9,19 +9,29 @@ import { Plus } from "lucide-react"
 export const metadata = { title: "Admin — Curriculum" }
 
 export default async function AdminCurriculumPage() {
-  const [systems, allSectors, allMissions] = await Promise.all([
-    db.select().from(starSystems).orderBy(asc(starSystems.number)),
-    db.select().from(sectors).orderBy(asc(sectors.number)),
-    db.select().from(missions).orderBy(asc(missions.number)),
-  ])
+  const allSystems = await db.select().from(starSystems).orderBy(asc(starSystems.number))
+  const allSectors = await db.select().from(sectors).orderBy(asc(sectors.number))
+  const allMissions = await db.select().from(missions).orderBy(asc(missions.number))
+
+  const tree = allSystems.map(sys => ({
+    ...sys,
+    sectors: allSectors
+      .filter(s => s.systemId === sys.id)
+      .map(sec => ({
+        ...sec,
+        missions: allMissions.filter(m => m.sectorId === sec.id),
+      })),
+  }))
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Curriculum</h1>
-        <Button size="sm" asChild><Link href="/admin/curriculum/new"><Plus className="h-4 w-4 mr-1" />New System</Link></Button>
+        <Link href="/admin/curriculum/new">
+          <Button size="sm" className="gap-2"><Plus className="h-4 w-4" />New System</Button>
+        </Link>
       </div>
-      <CurriculumTree systems={systems} sectors={allSectors} missions={allMissions} />
+      <CurriculumTree systems={tree} />
     </div>
   )
 }

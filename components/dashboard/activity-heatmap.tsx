@@ -1,16 +1,7 @@
 "use client"
 
-import dynamic from "next/dynamic"
 import { useMemo } from "react"
 import { subDays, format, startOfDay } from "date-fns"
-
-const Tooltip = dynamic(() => import("recharts").then(m => m.Tooltip), { ssr: false })
-const ResponsiveContainer = dynamic(() => import("recharts").then(m => m.ResponsiveContainer), { ssr: false })
-const ScatterChart = dynamic(() => import("recharts").then(m => m.ScatterChart), { ssr: false })
-const Scatter = dynamic(() => import("recharts").then(m => m.Scatter), { ssr: false })
-const XAxis = dynamic(() => import("recharts").then(m => m.XAxis), { ssr: false })
-const YAxis = dynamic(() => import("recharts").then(m => m.YAxis), { ssr: false })
-const Cell = dynamic(() => import("recharts").then(m => m.Cell), { ssr: false })
 
 interface ActivityDay {
   date: string

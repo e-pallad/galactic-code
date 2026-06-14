@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   let result: { leveledUp: boolean; newRank: number; newXp: number }
 
   await db.transaction(async (tx) => {
-    await (tx as typeof db).insert(skillCheckAttempts).values({
+    await tx.insert(skillCheckAttempts).values({
       userId: user.id,
       missionId,
       score,

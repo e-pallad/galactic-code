@@ -31,13 +31,16 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
 
   const missionIds = systemMissions.map(m => m.id)
 
-  const [userProgress, questions] = await Promise.all([
-    missionIds.length > 0 ? db.select().from(missionProgress)
-      .where(sql`user_id = ${user.id} AND mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`) : Promise.resolve([]),
-    missionIds.length > 0 ? db.select().from(skillCheckQuestions)
-      .where(sql`mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
-      .orderBy(asc(skillCheckQuestions.displayOrder)) : Promise.resolve([]),
-  ])
+  const userProgress = missionIds.length > 0
+    ? await db.select().from(missionProgress)
+        .where(sql`user_id = ${user.id} AND mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
+    : ([] as (typeof missionProgress.$inferSelect)[])
+
+  const questions = missionIds.length > 0
+    ? await db.select().from(skillCheckQuestions)
+        .where(sql`mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
+        .orderBy(asc(skillCheckQuestions.displayOrder))
+    : ([] as (typeof skillCheckQuestions.$inferSelect)[])
 
   const progressMap = Object.fromEntries(userProgress.map(p => [p.missionId, p.status]))
   const questionsByMission = questions.reduce<Record<string, typeof questions>>((acc, q) => {
