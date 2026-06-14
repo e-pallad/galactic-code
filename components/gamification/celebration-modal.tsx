@@ -15,10 +15,17 @@ interface CelebrationModalProps {
 }
 
 export function CelebrationModal({ open, onClose, type, title, description, icon }: CelebrationModalProps) {
-  const [prefersReduced, setPrefersReduced] = useState(false)
+  const [prefersReduced, setPrefersReduced] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      : false
+  )
 
   useEffect(() => {
-    setPrefersReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches)
+    mq.addEventListener("change", handler)
+    return () => mq.removeEventListener("change", handler)
   }, [])
 
   return (

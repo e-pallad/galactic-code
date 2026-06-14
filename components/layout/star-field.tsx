@@ -18,7 +18,8 @@ export function StarField() {
         .star-slow { animation-name: twinkle-slow; }
       `}</style>
       {Array.from({ length: 80 }).map((_, i) => {
-        const size = Math.random() < 0.7 ? 1 : Math.random() < 0.8 ? 2 : 3
+        const r = (Math.sin(i * 97.5) * 0.5 + 0.5)
+        const size = r < 0.7 ? 1 : r < 0.9 ? 2 : 3
         const x = `${(Math.sin(i * 137.508) * 0.5 + 0.5) * 100}%`
         const y = `${(Math.cos(i * 137.508) * 0.5 + 0.5) * 100}%`
         const dur = `${2 + (i % 5)}s`
