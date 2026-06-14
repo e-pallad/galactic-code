@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Space_Grotesk, Inter } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Analytics } from "@vercel/analytics/react"
@@ -28,6 +28,12 @@ export const metadata: Metadata = {
   title: { default: "Galactic Code", template: "%s | Galactic Code" },
   description: OG_DESCRIPTION,
   applicationName: "Galactic Code",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Galactic Code",
+  },
   keywords: [
     "learn programming",
     "coding game",
@@ -78,6 +84,10 @@ export const metadata: Metadata = {
     apple: "/icon-192.png",
     shortcut: "/icon-192.png",
   },
+}
+
+export const viewport: Viewport = {
+  themeColor: "#6366f1",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -8,6 +8,10 @@ import Anthropic from "@anthropic-ai/sdk"
 import { aiRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 export async function GET() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ disabled: true })
+  }
+
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -23,6 +27,10 @@ export async function GET() {
 }
 
 export async function POST() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ disabled: true })
+  }
+
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -32,7 +40,7 @@ export async function POST() {
   const limited = await applyRateLimit(aiRateLimit, user.id)
   if (limited) return limited
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const message = await client.messages.create({
     model: "claude-haiku-4-5-20251001",

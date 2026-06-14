@@ -57,6 +57,10 @@ export const users = pgTable("users", {
   showOnLeaderboard: boolean("show_on_leaderboard").default(false).notNull(),
   emailOptOut: boolean("email_opt_out").default(false).notNull(),
   credits: integer("credits").default(0).notNull(),
+  plan: text("plan", { enum: ["free", "pro"] }).default("free").notNull(),
+  stripeCustomerId: text("stripe_customer_id"),
+  subscriptionStatus: text("subscription_status", { enum: ["active", "canceled", "past_due"] }),
+  subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 })

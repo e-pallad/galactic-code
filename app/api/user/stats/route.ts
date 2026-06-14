@@ -32,6 +32,9 @@ export async function GET() {
     rankLabel: rankProgress.label,
     rankProgress,
     streak: user.streak,
+    plan: user.plan,
+    subscriptionStatus: user.subscriptionStatus,
+    aiEnabled: !!process.env.ANTHROPIC_API_KEY,
     dailyProgress: {
       completed: todayLog[0]?.missionsCompleted ?? 0,
       goal: user.dailyGoalMissions,
