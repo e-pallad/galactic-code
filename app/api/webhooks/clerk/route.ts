@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { Webhook } from "svix"
 import { syncUser, deleteUser } from "@/lib/missions"
+import { sendWelcomeEmail } from "@/lib/email"
 
 export async function POST(req: Request) {
   const secret = process.env.CLERK_WEBHOOK_SECRET
@@ -33,6 +34,8 @@ export async function POST(req: Request) {
     const email = d.email_addresses[0]?.email_address ?? ""
     const name = [d.first_name, d.last_name].filter(Boolean).join(" ") || null
     await syncUser(d.id, { email, name, avatarUrl: d.image_url ?? null })
+    // fire-and-forget — don't let email failure break the webhook
+    sendWelcomeEmail(email, d.first_name ?? null).catch(() => {})
     return NextResponse.json({ received: true })
   }
 
