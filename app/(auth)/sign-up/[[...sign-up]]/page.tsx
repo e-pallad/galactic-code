@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { SignUp } from "@clerk/nextjs"
 import { StarField } from "@/components/layout/star-field"
 
