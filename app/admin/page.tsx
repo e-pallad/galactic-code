@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { db } from "@/lib/db"
 import { users, missions, starSystems, missionProgress } from "@/lib/db/schema"
 import { sql, isNull } from "drizzle-orm"

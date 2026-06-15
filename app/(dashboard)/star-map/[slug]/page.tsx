@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { notFound } from "next/navigation"
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
