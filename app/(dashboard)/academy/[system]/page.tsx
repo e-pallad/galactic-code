@@ -7,7 +7,6 @@ import { eq, sql, asc } from "drizzle-orm"
 import { MissionCardClient } from "@/components/academy/mission-card-client"
 import { FocusCycleTimer } from "@/components/academy/focus-cycle-timer"
 import { FocusSounds } from "@/components/academy/focus-sounds"
-import { SkillCheckSection } from "@/components/academy/skill-check-section"
 import { ArrowLeft, Rocket } from "lucide-react"
 import Link from "next/link"
 

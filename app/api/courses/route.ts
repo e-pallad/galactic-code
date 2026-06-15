@@ -1,12 +1,11 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { externalCourses, dailyLogs } from "@/lib/db/schema"
+import { externalCourses } from "@/lib/db/schema"
 import { getUser, awardXP } from "@/lib/missions"
 import { XP_VALUES } from "@/lib/xp"
-import { eq, and, sql } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { z } from "zod"
-import { startOfDay } from "date-fns"
 
 const addSchema = z.object({
   action: z.literal("add"),

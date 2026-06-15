@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { ChevronRight, ChevronDown, Layers, Target } from "lucide-react"
-import { cn } from "@/lib/utils"
 import type { StarSystem, Sector, Mission } from "@/lib/db/schema"
 
 interface CurriculumTreeProps {

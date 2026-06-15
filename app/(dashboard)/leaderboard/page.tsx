@@ -5,7 +5,6 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq, desc, and, isNull } from "drizzle-orm"
 import { getRankProgress } from "@/lib/xp"
-import { RankBadge } from "@/components/gamification/rank-badge"
 import { Trophy, Flame } from "lucide-react"
 
 export const metadata = { title: "Leaderboard" }

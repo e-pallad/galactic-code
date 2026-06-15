@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { CheckCircle, Circle, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -78,7 +77,6 @@ export function StarMapClient({ mapData, completedNodes: initial }: StarMapClien
       {mapData.nodes.map(topic => {
         const isExpanded = expanded.has(topic.id)
         const topicCompleted = completed.has(topic.id)
-        const childrenCompleted = topic.children?.every(c => completed.has(c.id)) ?? true
 
         return (
           <div key={topic.id} className="rounded-xl border border-[#1e2d3d] bg-[#0d1520] overflow-hidden">

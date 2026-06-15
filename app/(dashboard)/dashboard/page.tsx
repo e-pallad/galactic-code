@@ -1,9 +1,8 @@
 import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser, awardDailyLoginXP, updateStreak } from "@/lib/missions"
-import { getRankProgress } from "@/lib/xp"
 import { db } from "@/lib/db"
-import { dailyLogs, missionProgress, missions, starSystems } from "@/lib/db/schema"
+import { dailyLogs, missionProgress, missions } from "@/lib/db/schema"
 import { eq, sql, desc } from "drizzle-orm"
 import { subDays, format, startOfWeek } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -46,8 +45,6 @@ export default async function DashboardPage() {
       .orderBy(desc(missionProgress.completedAt))
       .limit(1),
   ])
-
-  const rankProgress = getRankProgress(user.totalXp)
 
   return (
     <div className="space-y-6 max-w-5xl">

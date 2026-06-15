@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ExternalLink, Github, Plus, Rocket } from "lucide-react"
+import { ExternalLink, Github, Plus } from "lucide-react"
 import type { StarSystem } from "@/lib/db/schema"
 
 interface Operation {
@@ -33,7 +33,6 @@ interface OperationsClientProps {
 export function OperationsClient({ operations: initialOps, systems }: OperationsClientProps) {
   const router = useRouter()
   const [ops, setOps] = useState(initialOps)
-  const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [repoUrl, setRepoUrl] = useState("")
   const [liveUrl, setLiveUrl] = useState("")

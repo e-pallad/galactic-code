@@ -112,7 +112,7 @@ export async function updateStreak(userId: string): Promise<number> {
   return newStreak
 }
 
-export async function checkMedals(userId: string, opts: { tx?: DbTx } = {}): Promise<string[]> {
+export async function checkMedals(userId: string, _opts: { tx?: DbTx } = {}): Promise<string[]> {
   const schema = await import("@/lib/db/schema")
 
   const [user, existingMedals, mCount, opCount, aCount, pCount, peCount] = await Promise.all([

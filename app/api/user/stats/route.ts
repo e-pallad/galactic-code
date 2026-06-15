@@ -3,8 +3,8 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUser } from "@/lib/missions"
 import { getRankProgress } from "@/lib/xp"
-import { dailyLogs, missionProgress } from "@/lib/db/schema"
-import { eq, sql, gte } from "drizzle-orm"
+import { dailyLogs } from "@/lib/db/schema"
+import { sql } from "drizzle-orm"
 import { subDays, startOfDay, startOfWeek, format } from "date-fns"
 
 export async function GET() {

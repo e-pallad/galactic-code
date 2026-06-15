@@ -3,7 +3,7 @@ import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
 import { db } from "@/lib/db"
 import { operations, starSystems } from "@/lib/db/schema"
-import { eq, and } from "drizzle-orm"
+import { eq } from "drizzle-orm"
 import { OperationsClient } from "@/components/operations/operations-client"
 
 export const metadata = { title: "Operations" }

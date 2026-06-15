@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { starSystems, sectors, missions } from "@/lib/db/schema"
+import { starSystems } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { eq } from "drizzle-orm"
 import { z } from "zod"

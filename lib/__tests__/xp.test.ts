@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getRankFromXP, getRankProgress, getCharacterClass, RANK_THRESHOLDS } from "@/lib/xp"
+import { getRankFromXP, getRankProgress, getCharacterClass } from "@/lib/xp"
 
 describe("getRankFromXP", () => {
   it("returns rank 1 for 0 XP", () => {

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { Hero } from "@/components/landing/hero"
 import { Features } from "@/components/landing/features"
 import { StarField } from "@/components/layout/star-field"

@@ -51,7 +51,7 @@ export async function GET() {
   })
 }
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
   return NextResponse.json({ success: true })
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE(_req: Request) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
