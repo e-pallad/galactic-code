@@ -29,9 +29,12 @@ export const RANK_THRESHOLDS: { rank: number; xpRequired: number; label: string 
 ]
 
 export const CHARACTER_CLASSES: Record<string, { name: string; icon: string; flavor: string }> = {
-  javascript: { name: "Code Pilot", icon: "⚡", flavor: "Agile navigators of the web's frontier" },
-  python:     { name: "Data Mage",  icon: "🔮", flavor: "Analysts who bend systems to their will" },
-  default:    { name: "Space Cadet", icon: "🛸", flavor: "Exploring all sectors of the galaxy" },
+  javascript: { name: "Code Pilot",       icon: "⚡",  flavor: "Agile navigators of the web's frontier" },
+  react:      { name: "Reactor Pilot",    icon: "⚛️",  flavor: "Masters of reactive UI and component craft" },
+  nodejs:     { name: "Systems Engineer", icon: "🖥️",  flavor: "Architects of the server-side galaxy" },
+  nextjs:     { name: "Warp Architect",   icon: "🌐",  flavor: "Full-stack commanders bridging server and client" },
+  python:     { name: "Data Mage",        icon: "🔮",  flavor: "Analysts who bend systems to their will" },
+  default:    { name: "Space Cadet",      icon: "🛸",  flavor: "Exploring all sectors of the galaxy" },
 }
 
 export function getCharacterClass(track: string) {
