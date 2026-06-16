@@ -25,6 +25,7 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
   const router = useRouter()
   const [currentStatus, setCurrentStatus] = useState(status)
   const [showSkillCheck, setShowSkillCheck] = useState(false)
+  const [pendingSkillCheck, setPendingSkillCheck] = useState(false)
   const [celebration, setCelebration] = useState<{ type: "levelUp" | "medal"; title: string; description: string; icon?: string } | null>(null)
 
   const handleComplete = async (missionId: string, usedFocusCycle: boolean) => {
@@ -35,13 +36,25 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
     })
     const data = await res.json() as { leveledUp: boolean; newRank: number; newXp: number; newMedals: string[] }
     setCurrentStatus("COMPLETED")
+    const hasCelebration = data.leveledUp || data.newMedals?.length > 0
     if (data.leveledUp) {
       setCelebration({ type: "levelUp", title: `Rank ${data.newRank} Achieved!`, description: `You've reached a new rank with ${data.newXp.toLocaleString()} XP!`, icon: "⭐" })
     } else if (data.newMedals?.length > 0) {
       setCelebration({ type: "medal", title: "Medal Unlocked!", description: `You earned: ${data.newMedals.join(", ")}`, icon: "🏅" })
     }
-    if (questions.length > 0) setShowSkillCheck(true)
+    if (questions.length > 0) {
+      if (hasCelebration) setPendingSkillCheck(true)
+      else setShowSkillCheck(true)
+    }
     router.refresh()
+  }
+
+  const handleCelebrationClose = () => {
+    setCelebration(null)
+    if (pendingSkillCheck) {
+      setPendingSkillCheck(false)
+      setShowSkillCheck(true)
+    }
   }
 
   const handleSkip = async (missionId: string) => {
@@ -74,7 +87,7 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
       {celebration && (
         <CelebrationModal
           open={!!celebration}
-          onClose={() => setCelebration(null)}
+          onClose={handleCelebrationClose}
           type={celebration.type}
           title={celebration.title}
           description={celebration.description}

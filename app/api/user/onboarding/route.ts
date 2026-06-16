@@ -31,6 +31,6 @@ export async function POST(req: Request) {
     .where(eq(users.id, user.id))
 
   const response = NextResponse.json({ success: true })
-  response.cookies.set("gc_onboarding", "1", { path: "/", maxAge: 60 * 60 * 24 * 365 })
+  response.cookies.set("gc_onboarding", "1", { path: "/", maxAge: 60 * 60 * 24 * 365, httpOnly: true, sameSite: "lax" })
   return response
 }

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"
+
 import { readdir } from "fs/promises"
 import { join } from "path"
 import Link from "next/link"

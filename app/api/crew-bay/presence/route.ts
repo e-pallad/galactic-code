@@ -3,6 +3,8 @@ export const runtime = "edge"
 import { NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 
+const PRESENCE_KEY = "galactic:crew:presence"
+
 async function getRedis() {
   const { Redis } = await import("@upstash/redis")
   return new Redis({
@@ -11,7 +13,11 @@ async function getRedis() {
   })
 }
 
-const PRESENCE_KEY = "galactic:crew:presence"
+async function getCrewCount(redis: Awaited<ReturnType<typeof getRedis>>): Promise<number> {
+  const now = Math.floor(Date.now() / 1000)
+  await redis.zremrangebyscore(PRESENCE_KEY, 0, now)
+  return await redis.zcard(PRESENCE_KEY)
+}
 
 export async function GET() {
   const encoder = new TextEncoder()
@@ -21,8 +27,8 @@ export async function GET() {
       const sendCount = async () => {
         try {
           const redis = await getRedis()
-          const keys = await redis.keys(`${PRESENCE_KEY}:*`)
-          const data = JSON.stringify({ count: keys.length })
+          const count = await getCrewCount(redis)
+          const data = JSON.stringify({ count })
           controller.enqueue(encoder.encode(`event: crew-count\ndata: ${data}\n\n`))
         } catch {}
       }
@@ -56,7 +62,8 @@ export async function POST() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const redis = await getRedis()
-  await redis.setex(`${PRESENCE_KEY}:${userId}`, 60, "1")
+  const expiry = Math.floor(Date.now() / 1000) + 60
+  await redis.zadd(PRESENCE_KEY, { score: expiry, member: userId })
   return NextResponse.json({ success: true })
 }
 
@@ -65,6 +72,6 @@ export async function DELETE() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const redis = await getRedis()
-  await redis.del(`${PRESENCE_KEY}:${userId}`)
+  await redis.zrem(PRESENCE_KEY, userId)
   return NextResponse.json({ success: true })
 }

@@ -6,6 +6,7 @@ import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
+import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 const addSchema = z.object({
   action: z.literal("add"),
@@ -39,6 +40,9 @@ export async function POST(req: Request) {
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+  const limited = await applyRateLimit(mutationRateLimit, user.id)
+  if (limited) return limited
+
   if (parsed.data.action === "add") {
     const { platform, url, title, totalLessons } = parsed.data
     const [course] = await db.insert(externalCourses).values({ userId: user.id, platform, url, title, totalLessons }).returning()
@@ -57,12 +61,13 @@ export async function POST(req: Request) {
 
   if (parsed.data.action === "complete") {
     const { id } = parsed.data
+    // Only mark complete and award XP if not already completed
     const [course] = await db.update(externalCourses)
       .set({ isCompleted: true, completedAt: new Date(), xpEarned: XP_VALUES.COMPLETE_COURSE })
-      .where(and(eq(externalCourses.id, id), eq(externalCourses.userId, user.id)))
+      .where(and(eq(externalCourses.id, id), eq(externalCourses.userId, user.id), eq(externalCourses.isCompleted, false)))
       .returning()
-    await awardXP(user.id, XP_VALUES.COMPLETE_COURSE)
-    return NextResponse.json({ course })
+    if (course) await awardXP(user.id, XP_VALUES.COMPLETE_COURSE)
+    return NextResponse.json({ course: course ?? null })
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 })

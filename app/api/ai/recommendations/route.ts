@@ -5,6 +5,7 @@ import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import Anthropic from "@anthropic-ai/sdk"
+import { aiRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 export async function GET() {
   const clerkId = await getClerkId()
@@ -27,6 +28,9 @@ export async function POST() {
 
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+  const limited = await applyRateLimit(aiRateLimit, user.id)
+  if (limited) return limited
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 

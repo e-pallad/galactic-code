@@ -5,12 +5,21 @@ const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL ?? "Galactic Code <noreply@galacticcode.dev>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+}
+
 export async function sendWelcomeEmail(to: string, name: string | null) {
-  const displayName = name ?? "Cadet"
+  const displayName = escapeHtml(name ?? "Cadet")
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "Welcome to the Academy, " + displayName + " 🚀",
+    subject: "Welcome to the Academy, " + (name ?? "Cadet") + " 🚀",
     html: `
       <div style="background:#080C14;color:#e2e8f0;font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;border-radius:12px">
         <h1 style="color:#06B6D4;font-size:24px;margin-bottom:8px">Mission briefing received.</h1>
@@ -29,17 +38,17 @@ export async function sendWelcomeEmail(to: string, name: string | null) {
 }
 
 export async function sendReEngagementEmail(to: string, name: string | null, streak: number) {
-  const displayName = name ?? "Cadet"
+  const displayName = escapeHtml(name ?? "Cadet")
   const streakMsg = streak > 0
     ? `Your Hyperdrive Charge is at ${streak} day${streak !== 1 ? "s" : ""}. Don't let it die.`
     : "Your Hyperdrive Charge has reset. Relight it today."
   await resend.emails.send({
     from: FROM,
     to,
-    subject: "⚡ Your hyperdrive is fading, " + displayName,
+    subject: "⚡ Your hyperdrive is fading, " + (name ?? "Cadet"),
     html: `
       <div style="background:#080C14;color:#e2e8f0;font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;border-radius:12px">
-        <h1 style="color:#8B5CF6;font-size:24px;margin-bottom:8px">Cadet, we've lost your signal.</h1>
+        <h1 style="color:#8B5CF6;font-size:24px;margin-bottom:8px">${displayName}, we've lost your signal.</h1>
         <p style="color:#94a3b8;margin-bottom:24px">${streakMsg}</p>
         <p style="margin-bottom:24px">One mission. 15 XP. That's all it takes to stay on course.</p>
         <a href="${APP_URL}/academy" style="display:inline-block;background:#6366F1;color:#fff;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none">Resume Mission →</a>
@@ -54,11 +63,11 @@ export async function sendWeeklySummaryEmail(
   name: string | null,
   stats: { xpThisWeek: number; missionsThisWeek: number; totalXp: number; streak: number; rankLabel: string }
 ) {
-  const displayName = name ?? "Cadet"
+  const displayName = escapeHtml(name ?? "Cadet")
   await resend.emails.send({
     from: FROM,
     to,
-    subject: `Weekly debrief — ${stats.xpThisWeek} XP earned, ${displayName}`,
+    subject: `Weekly debrief — ${stats.xpThisWeek} XP earned, ${name ?? "Cadet"}`,
     html: `
       <div style="background:#080C14;color:#e2e8f0;font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;border-radius:12px">
         <h1 style="color:#06B6D4;font-size:24px;margin-bottom:8px">Weekly Debrief</h1>

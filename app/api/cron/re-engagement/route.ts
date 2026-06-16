@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
-import { isNull } from "drizzle-orm"
+import { isNull, eq, and } from "drizzle-orm"
 import { sendReEngagementEmail } from "@/lib/email"
 import { subDays, startOfDay } from "date-fns"
 
@@ -14,14 +14,10 @@ export async function GET(req: NextRequest) {
   const twoDaysAgo = startOfDay(subDays(new Date(), 2))
   const threeDaysAgo = startOfDay(subDays(new Date(), 3))
 
-  // Users whose lastSeenAt is exactly 2 days ago (haven't logged in since)
   const inactive = await db
     .select()
     .from(users)
-    .where(
-      // lastSeenAt between 3 days ago and 2 days ago (the 2-day gap window)
-      isNull(users.deletedAt)
-    )
+    .where(and(isNull(users.deletedAt), eq(users.emailOptOut, false)))
 
   const targets = inactive.filter(u => {
     if (!u.lastSeenAt) return false

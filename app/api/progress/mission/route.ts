@@ -4,9 +4,10 @@ import { missionProgress, missions, dailyLogs } from "@/lib/db/schema"
 import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, and } from "drizzle-orm"
 import { z } from "zod"
 import { startOfDay } from "date-fns"
+import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 const schema = z.object({
   missionId: z.string().uuid(),
@@ -25,10 +26,22 @@ export async function POST(req: Request) {
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+  const limited = await applyRateLimit(mutationRateLimit, user.id)
+  if (limited) return limited
+
   const { missionId, action, usedFocusCycle } = parsed.data
 
   const [mission] = await db.select().from(missions).where(eq(missions.id, missionId)).limit(1)
   if (!mission) return NextResponse.json({ error: "Mission not found" }, { status: 404 })
+
+  // Check existing progress to prevent re-awarding XP on already-completed missions
+  const [existing] = await db
+    .select({ status: missionProgress.status })
+    .from(missionProgress)
+    .where(and(eq(missionProgress.userId, user.id), eq(missionProgress.missionId, missionId)))
+    .limit(1)
+
+  const alreadyCompleted = existing?.status === "COMPLETED"
 
   const xpAmount = action === "skip"
     ? XP_VALUES.SKIP_MISSION
@@ -38,7 +51,11 @@ export async function POST(req: Request) {
 
   const status = action === "skip" ? "SKIPPED" : "COMPLETED"
 
-  let result: { leveledUp: boolean; newRank: number; newXp: number }
+  let result: { leveledUp: boolean; newRank: number; newXp: number } = {
+    leveledUp: false,
+    newRank: user.rank,
+    newXp: user.totalXp,
+  }
 
   await db.transaction(async (tx) => {
     await tx
@@ -56,7 +73,10 @@ export async function POST(req: Request) {
         set: { status, xpEarned: xpAmount, usedFocusCycle: usedFocusCycle ?? false, completedAt: action === "complete" ? new Date() : null },
       })
 
-    result = await awardXP(user.id, xpAmount, { tx })
+    // Only award XP if this is a new completion (not re-completing an already-completed mission)
+    if (!alreadyCompleted) {
+      result = await awardXP(user.id, xpAmount, { tx })
+    }
 
     if (action === "complete") {
       const today = startOfDay(new Date()).toISOString().slice(0, 10)
@@ -77,10 +97,10 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     success: true,
-    xpEarned: xpAmount,
-    leveledUp: result!.leveledUp,
-    newRank: result!.newRank,
-    newXp: result!.newXp,
+    xpEarned: alreadyCompleted ? 0 : xpAmount,
+    leveledUp: result.leveledUp,
+    newRank: result.newRank,
+    newXp: result.newXp,
     newStreak,
     newMedals,
   })

@@ -4,8 +4,9 @@ import { operations } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
-import { eq, and } from "drizzle-orm"
+import { eq, and, ne } from "drizzle-orm"
 import { z } from "zod"
+import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 const createSchema = z.object({
   action: z.literal("create"),
@@ -25,7 +26,7 @@ const updateSchema = z.object({
 const completeSchema = z.object({
   action: z.literal("complete"),
   id: z.string().uuid(),
-  repoUrl: z.string().url().optional(),
+  repoUrl: z.string().url(),
   liveUrl: z.string().url().optional(),
 })
 
@@ -41,6 +42,9 @@ export async function POST(req: Request) {
 
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+  const limited = await applyRateLimit(mutationRateLimit, user.id)
+  if (limited) return limited
 
   if (parsed.data.action === "create") {
     const { trackId, systemNumber, title, description } = parsed.data
@@ -59,13 +63,16 @@ export async function POST(req: Request) {
 
   if (parsed.data.action === "complete") {
     const { id, repoUrl, liveUrl } = parsed.data
+    // Only update and award XP if not already completed
     const [op] = await db.update(operations)
       .set({ status: "COMPLETED", xpEarned: XP_VALUES.COMPLETE_OPERATION, completedAt: new Date(), ...(repoUrl ? { repoUrl } : {}), ...(liveUrl ? { liveUrl } : {}) })
-      .where(and(eq(operations.id, id), eq(operations.userId, user.id)))
+      .where(and(eq(operations.id, id), eq(operations.userId, user.id), ne(operations.status, "COMPLETED")))
       .returning()
-    await awardXP(user.id, XP_VALUES.COMPLETE_OPERATION)
-    await checkMedals(user.id)
-    return NextResponse.json({ operation: op })
+    if (op) {
+      await awardXP(user.id, XP_VALUES.COMPLETE_OPERATION)
+      await checkMedals(user.id)
+    }
+    return NextResponse.json({ operation: op ?? null })
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 })

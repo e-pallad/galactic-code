@@ -1,14 +1,14 @@
 import { differenceInCalendarDays, startOfDay } from "date-fns"
 import { db } from "@/lib/db"
 import { users, dailyLogs, medals } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, isNull, and } from "drizzle-orm"
 import { getRankFromXP, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
 import type { User } from "@/lib/db/schema"
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
 export async function getUser(clerkId: string): Promise<User | null> {
-  const result = await db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+  const result = await db.select().from(users).where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt))).limit(1)
   return result[0] ?? null
 }
 
@@ -106,8 +106,8 @@ export async function updateStreak(userId: string): Promise<number> {
     .set({ streak: newStreak, lastSeenAt: new Date(), ...(usedFreeze ? { streakFreezeUsedAt: new Date() } : {}) })
     .where(eq(users.id, userId))
 
-  if (newStreak === 7) await awardXP(userId, XP_VALUES.STREAK_BONUS_7)
-  if (newStreak === 30) await awardXP(userId, XP_VALUES.STREAK_BONUS_30)
+  if (user.streak < 7 && newStreak >= 7) await awardXP(userId, XP_VALUES.STREAK_BONUS_7)
+  if (user.streak < 30 && newStreak >= 30) await awardXP(userId, XP_VALUES.STREAK_BONUS_30)
 
   return newStreak
 }
@@ -133,12 +133,13 @@ export async function checkMedals(userId: string): Promise<string[]> {
   const toUnlock = MEDAL_DEFINITIONS.filter((def) => !existingSlugs.has(def.slug) && def.check(stats))
   if (toUnlock.length === 0) return []
 
-  await db
+  const inserted = await db
     .insert(medals)
     .values(toUnlock.map((def) => ({ userId, slug: def.slug, label: def.label, description: def.description, icon: def.icon, xpBonus: def.xpBonus })))
     .onConflictDoNothing()
+    .returning()
 
-  const totalBonus = toUnlock.reduce((sum, def) => sum + def.xpBonus, 0)
+  const totalBonus = inserted.reduce((sum, m) => sum + m.xpBonus, 0)
   if (totalBonus > 0) await awardXP(userId, totalBonus)
 
   return toUnlock.map((d) => d.slug)

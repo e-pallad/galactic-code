@@ -12,6 +12,8 @@ const schema = z.object({
   role: z.enum(["user", "admin", "moderator"]).optional(),
 })
 
+const uuidSchema = z.string().uuid()
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   const { userId: clerkId } = await auth()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -20,6 +22,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ userId
   if (!admin || admin.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { userId } = await params
+  if (!uuidSchema.safeParse(userId).success) return NextResponse.json({ error: "Invalid user ID" }, { status: 400 })
+
   const body = await req.json() as unknown
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })

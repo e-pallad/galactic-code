@@ -50,6 +50,7 @@ export const users = pgTable("users", {
   weeklyGoalMissions: integer("weekly_goal_missions").default(10).notNull(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   showOnLeaderboard: boolean("show_on_leaderboard").default(false).notNull(),
+  emailOptOut: boolean("email_opt_out").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 })

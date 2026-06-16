@@ -18,6 +18,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
   const router = useRouter()
   const [name, setName] = useState(user.name ?? "")
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(user.showOnLeaderboard)
+  const [emailOptOut, setEmailOptOut] = useState(user.emailOptOut)
   const [dailyGoal, setDailyGoal] = useState(user.dailyGoalMissions)
   const [weeklyGoal, setWeeklyGoal] = useState(user.weeklyGoalMissions)
   const [saving, setSaving] = useState(false)
@@ -29,7 +30,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
       await fetch("/api/user/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, showOnLeaderboard, dailyGoalMissions: dailyGoal, weeklyGoalMissions: weeklyGoal }),
+        body: JSON.stringify({ name, showOnLeaderboard, emailOptOut, dailyGoalMissions: dailyGoal, weeklyGoalMissions: weeklyGoal }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -57,13 +58,20 @@ export function SettingsForm({ user }: SettingsFormProps) {
 
       <Card>
         <CardHeader><CardTitle>Privacy</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-[#e2e8f0]">Show on Leaderboard</p>
               <p className="text-xs text-[#94a3b8]">Allow other pilots to see your ranking</p>
             </div>
             <Switch checked={showOnLeaderboard} onCheckedChange={setShowOnLeaderboard} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[#e2e8f0]">Unsubscribe from Emails</p>
+              <p className="text-xs text-[#94a3b8]">Stop receiving re-engagement and weekly summary emails</p>
+            </div>
+            <Switch checked={emailOptOut} onCheckedChange={setEmailOptOut} />
           </div>
         </CardContent>
       </Card>

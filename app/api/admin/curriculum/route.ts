@@ -16,6 +16,12 @@ const systemSchema = z.object({
 })
 
 export async function GET() {
+  const { userId: clerkId } = await auth()
+  if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const admin = await getUser(clerkId)
+  if (!admin || admin.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
   const systems = await db.select().from(starSystems)
   return NextResponse.json({ systems })
 }

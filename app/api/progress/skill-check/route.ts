@@ -5,6 +5,7 @@ import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
 import { z } from "zod"
+import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 const schema = z.object({
   missionId: z.string().uuid(),
@@ -22,6 +23,9 @@ export async function POST(req: Request) {
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+  const limited = await applyRateLimit(mutationRateLimit, user.id)
+  if (limited) return limited
+
   const { missionId, score } = parsed.data
   const passed = score >= 70
   const perfect = score === 100
@@ -31,7 +35,11 @@ export async function POST(req: Request) {
   else if (passed) xpEarned = XP_VALUES.SKILL_CHECK_PASS
   else xpEarned = XP_VALUES.SKILL_CHECK_ATTEMPT
 
-  let result: { leveledUp: boolean; newRank: number; newXp: number }
+  let result: { leveledUp: boolean; newRank: number; newXp: number } = {
+    leveledUp: false,
+    newRank: user.rank,
+    newXp: user.totalXp,
+  }
 
   await db.transaction(async (tx) => {
     await tx.insert(skillCheckAttempts).values({
@@ -52,7 +60,7 @@ export async function POST(req: Request) {
     xpEarned,
     passed,
     perfect,
-    leveledUp: result!.leveledUp,
+    leveledUp: result.leveledUp,
     newMedals,
   })
 }
