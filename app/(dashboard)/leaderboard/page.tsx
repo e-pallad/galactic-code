@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq, desc, and, isNull } from "drizzle-orm"
@@ -12,7 +12,7 @@ import { Trophy, Flame } from "lucide-react"
 export const metadata = { title: "Leaderboard" }
 
 export default async function LeaderboardPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

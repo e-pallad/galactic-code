@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser, awardDailyLoginXP, updateStreak } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { dailyLogs, missionProgress, missions } from "@/lib/db/schema"
 import { eq, sql, desc } from "drizzle-orm"
@@ -20,7 +20,7 @@ import { Zap, Target, Flame } from "lucide-react"
 export const metadata = { title: "Command Bridge" }
 
 export default async function DashboardPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

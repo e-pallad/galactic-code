@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect, notFound } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { starSystems, sectors, missions, missionProgress, skillCheckQuestions } from "@/lib/db/schema"
 import { eq, sql, asc } from "drizzle-orm"
@@ -14,7 +14,7 @@ import Link from "next/link"
 
 export default async function SystemPage({ params }: { params: Promise<{ system: string }> }) {
   const { system: systemId } = await params
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

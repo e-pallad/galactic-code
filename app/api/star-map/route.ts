@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { starMapProgress } from "@/lib/db/schema"
 import { getUser, awardXP } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
 import { z } from "zod"
 
@@ -14,7 +14,7 @@ const schema = z.object({
 })
 
 export async function POST(req: Request) {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json() as unknown

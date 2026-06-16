@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { externalCourses } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -11,7 +11,7 @@ import { SimBayClient } from "@/components/sim-bay/sim-bay-client"
 export const metadata = { title: "Sim Bay" }
 
 export default async function SimBayPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

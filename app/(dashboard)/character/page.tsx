@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { medals } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -15,7 +15,7 @@ import { getRankProgress } from "@/lib/xp"
 export const metadata = { title: "Character" }
 
 export default async function CharacterPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

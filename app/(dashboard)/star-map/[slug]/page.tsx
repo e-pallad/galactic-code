@@ -1,9 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { notFound } from "next/navigation"
-import { auth } from "@clerk/nextjs/server"
-import { redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { starMapProgress } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -36,7 +35,7 @@ async function getMapData(slug: string): Promise<MapData | null> {
 
 export default async function StarMapSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

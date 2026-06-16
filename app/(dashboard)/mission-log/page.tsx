@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { medals, dailyLogs, missionProgress, missions } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
@@ -15,7 +15,7 @@ import { subDays, format } from "date-fns"
 export const metadata = { title: "Mission Log" }
 
 export default async function MissionLogPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

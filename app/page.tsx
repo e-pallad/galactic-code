@@ -17,6 +17,7 @@ export default function LandingPage() {
         </div>
         <div className="flex items-center gap-4 text-sm">
           <Link href="/sign-in" className="text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">Sign In</Link>
+          <Link href="/demo" className="text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">Try Demo</Link>
           <Link href="/sign-up" className="px-3 py-1.5 rounded-md bg-[#06B6D4] text-[#080C14] font-medium hover:bg-[#06B6D4]/90 transition-colors">
             Get Started
           </Link>

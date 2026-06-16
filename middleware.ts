@@ -3,15 +3,20 @@ import { NextResponse } from "next/server"
 
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/demo",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/offline",
   "/api/health",
   "/api/webhooks/clerk",
+  "/api/demo/reset",
 ])
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next()
+
+  const isDemo = req.cookies.get("gc_demo")?.value === "1"
+  if (isDemo) return NextResponse.next()
 
   const { userId } = await auth()
 

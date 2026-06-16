@@ -1,14 +1,14 @@
-import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { getRankProgress } from "@/lib/xp"
 import { dailyLogs } from "@/lib/db/schema"
 import { sql } from "drizzle-orm"
 import { subDays, startOfDay, startOfWeek, format } from "date-fns"
 
 export async function GET() {
-  const { userId } = await auth()
+  const userId = await getClerkId()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const user = await getUser(userId)

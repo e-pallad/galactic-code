@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic"
 
-import { auth } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { starSystems, missions, missionProgress, operations } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
@@ -11,7 +11,7 @@ import { StarSystemCard } from "@/components/academy/star-system-card"
 export const metadata = { title: "Academy" }
 
 export default async function AcademyPage() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)

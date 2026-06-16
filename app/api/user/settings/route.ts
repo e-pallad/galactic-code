@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 
@@ -14,7 +14,7 @@ const schema = z.object({
 })
 
 export async function PATCH(req: Request) {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json() as unknown

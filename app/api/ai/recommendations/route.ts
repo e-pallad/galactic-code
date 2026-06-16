@@ -1,13 +1,13 @@
-import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { aiRecommendations } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import Anthropic from "@anthropic-ai/sdk"
 
 export async function GET() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const user = await getUser(clerkId)
@@ -22,7 +22,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const user = await getUser(clerkId)

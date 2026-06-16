@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { missionProgress, missions, dailyLogs } from "@/lib/db/schema"
 import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
+import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
 import { eq, sql } from "drizzle-orm"
 import { z } from "zod"
@@ -15,7 +15,7 @@ const schema = z.object({
 })
 
 export async function POST(req: Request) {
-  const { userId: clerkId } = await auth()
+  const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json() as unknown
