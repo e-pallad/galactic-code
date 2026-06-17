@@ -8,6 +8,7 @@ import { motion } from "motion/react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Zap } from "lucide-react"
+import { analytics } from "@/lib/analytics"
 
 const tracks = [
   { id: "javascript", name: "JavaScript", icon: "⚡", class: "Code Pilot", description: "Build the web. Master JS fundamentals from the ground up." },
@@ -33,6 +34,7 @@ export default function OnboardingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ track: selectedTrack, dailyGoalMissions: dailyGoal }),
       })
+      analytics.onboardingComplete({ track: selectedTrack, daily_goal: dailyGoal })
       router.push("/dashboard")
     } finally {
       setLoading(false)
@@ -60,7 +62,7 @@ export default function OnboardingPage() {
                 {tracks.map((track) => (
                   <button
                     key={track.id}
-                    onClick={() => setSelectedTrack(track.id)}
+                    onClick={() => { setSelectedTrack(track.id); analytics.trackSelected({ track: track.id }) }}
                     className={`p-5 rounded-xl border text-left transition-all ${
                       selectedTrack === track.id
                         ? "border-[#06B6D4] bg-[#06B6D4]/10"

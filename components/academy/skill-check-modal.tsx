@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CheckCircle, XCircle } from "lucide-react"
+import { analytics } from "@/lib/analytics"
 
 interface Question {
   id: string
@@ -56,7 +57,14 @@ export function SkillCheckModal({ open, onClose, questions, missionId, onComplet
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ missionId, score }),
         })
-        const data = await res.json() as { xpEarned: number }
+        const data = await res.json() as { xpEarned: number; passed: boolean; perfect: boolean }
+        analytics.skillCheckSubmit({
+          score,
+          passed: data.passed ?? score >= 70,
+          perfect: data.perfect ?? score === 100,
+          xp_earned: data.xpEarned ?? 0,
+          question_count: questions.length,
+        })
         setShowResult(true)
         onComplete(score, data.xpEarned)
       } finally {

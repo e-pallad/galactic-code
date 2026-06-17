@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { MissionCard } from "@/components/academy/mission-card"
 import { SkillCheckModal } from "@/components/academy/skill-check-modal"
 import { CelebrationModal } from "@/components/gamification/celebration-modal"
+import { analytics } from "@/lib/analytics"
 import type { Mission } from "@/lib/db/schema"
 
 interface Question {
@@ -34,7 +35,15 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ missionId, action: "complete", usedFocusCycle }),
     })
-    const data = await res.json() as { leveledUp: boolean; newRank: number; newXp: number; newMedals: string[] }
+    const data = await res.json() as { leveledUp: boolean; newRank: number; newXp: number; newMedals: string[]; track?: string }
+    analytics.missionComplete({
+      mission_title: mission.title,
+      mission_type: mission.type,
+      track: data.track ?? "unknown",
+      used_focus_cycle: usedFocusCycle,
+      leveled_up: data.leveledUp ?? false,
+      xp_earned: data.newXp ?? 0,
+    })
     setCurrentStatus("COMPLETED")
     const hasCelebration = data.leveledUp || data.newMedals?.length > 0
     if (data.leveledUp) {
@@ -63,6 +72,7 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ missionId, action: "skip" }),
     })
+    analytics.missionSkip({ mission_title: mission.title, mission_type: mission.type, track: mission.type })
     setCurrentStatus("SKIPPED")
     router.refresh()
   }

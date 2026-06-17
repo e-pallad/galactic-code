@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ExternalLink, Github, Plus } from "lucide-react"
+import { analytics } from "@/lib/analytics"
 import type { StarSystem } from "@/lib/db/schema"
 
 interface Operation {
@@ -78,11 +79,20 @@ export function OperationsClient({ operations: initialOps, systems }: Operations
   const handleComplete = async (id: string) => {
     setLoading(true)
     try {
+      const op = ops.find(o => o.id === id)
       await fetch("/api/operations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete", id }),
       })
+      if (op) {
+        analytics.operationSubmit({
+          track: op.trackId,
+          system_number: op.systemNumber,
+          has_repo: !!op.repoUrl,
+          has_live_url: !!op.liveUrl,
+        })
+      }
       router.refresh()
     } finally {
       setLoading(false)
