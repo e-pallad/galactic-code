@@ -4,6 +4,7 @@ import { skillCheckAttempts } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
+import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
@@ -52,6 +53,10 @@ export async function POST(req: Request) {
     })
     result = await awardXP(user.id, xpEarned, { tx })
   })
+
+  if (passed) {
+    await awardCredits(user.id, perfect ? CREDIT_VALUES.SKILL_CHECK_PERFECT : CREDIT_VALUES.SKILL_CHECK_PASS)
+  }
 
   const newMedals = await checkMedals(user.id)
 

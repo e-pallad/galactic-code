@@ -4,6 +4,7 @@ import { missionProgress, missions, dailyLogs } from "@/lib/db/schema"
 import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
+import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { eq, sql, and } from "drizzle-orm"
 import { z } from "zod"
 import { startOfDay } from "date-fns"
@@ -89,6 +90,18 @@ export async function POST(req: Request) {
         })
     }
   })
+
+  // Award credits for mission completion (only for fresh completions)
+  if (!alreadyCompleted && action === "complete") {
+    const typeMap: Record<string, keyof typeof CREDIT_VALUES> = {
+      "briefing": "MISSION_BRIEFING",
+      "training-op": "MISSION_TRAINING_OP",
+      "strike-mission": "MISSION_STRIKE",
+      "debrief": "MISSION_DEBRIEF",
+    }
+    const creditAmount = CREDIT_VALUES[typeMap[mission.type] ?? "MISSION_BRIEFING"]
+    await awardCredits(user.id, creditAmount + (usedFocusCycle ? CREDIT_VALUES.FOCUS_CYCLE_BONUS : 0))
+  }
 
   const [newStreak, newMedals] = await Promise.all([
     updateStreak(user.id),

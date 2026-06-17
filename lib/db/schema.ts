@@ -33,6 +33,13 @@ export const operationStatusEnum = pgEnum("operation_status", [
 export const nodeTypeEnum = pgEnum("node_type", ["topic", "subtopic"])
 export const nodeStatusEnum = pgEnum("node_status", ["NOT_STARTED", "COMPLETED"])
 
+export const itemRarityEnum = pgEnum("item_rarity", ["common", "uncommon", "rare", "epic", "legendary"])
+export const itemTypeEnum = pgEnum("item_type", ["weapon", "shield", "engine", "skin"])
+export const entityRarityEnum = pgEnum("entity_rarity", ["common", "uncommon", "rare", "boss"])
+export const battleStatusEnum = pgEnum("battle_status", ["active", "victory", "defeat", "fled"])
+export const battleTypeEnum = pgEnum("battle_type", ["solo", "fleet"])
+export const fleetRoleEnum = pgEnum("fleet_role", ["captain", "officer", "pilot"])
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   clerkId: text("clerk_id").unique().notNull(),
@@ -51,6 +58,7 @@ export const users = pgTable("users", {
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   showOnLeaderboard: boolean("show_on_leaderboard").default(false).notNull(),
   emailOptOut: boolean("email_opt_out").default(false).notNull(),
+  credits: integer("credits").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 })
@@ -270,6 +278,120 @@ export const aiRecommendations = pgTable("ai_recommendations", {
   expiresAt: timestamp("expires_at").notNull(),
 })
 
+export const fleets = pgTable("fleets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  tag: text("tag").unique().notNull(),
+  emblem: text("emblem").default("🚀").notNull(),
+  captainUserId: uuid("captain_user_id").notNull(),
+  totalXp: integer("total_xp").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+export const fleetMembers = pgTable(
+  "fleet_members",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    fleetId: uuid("fleet_id").notNull().references(() => fleets.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    role: fleetRoleEnum("role").default("pilot").notNull(),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.fleetId, t.userId)]
+)
+
+export const ships = pgTable("ships", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().unique().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").default("Scout Vessel").notNull(),
+  baseHp: integer("base_hp").default(100).notNull(),
+  baseAtk: integer("base_atk").default(10).notNull(),
+  baseDef: integer("base_def").default(10).notNull(),
+  baseSpd: integer("base_spd").default(10).notNull(),
+  equippedSkinItemId: uuid("equipped_skin_item_id"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+export const items = pgTable("items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").unique().notNull(),
+  name: text("name").notNull(),
+  type: itemTypeEnum("type").notNull(),
+  rarity: itemRarityEnum("rarity").notNull(),
+  creditCost: integer("credit_cost").notNull(),
+  icon: text("icon").notNull(),
+  bonusAtk: integer("bonus_atk").default(0).notNull(),
+  bonusDef: integer("bonus_def").default(0).notNull(),
+  bonusSpd: integer("bonus_spd").default(0).notNull(),
+  bonusHp: integer("bonus_hp").default(0).notNull(),
+  description: text("description").notNull(),
+})
+
+export const userInventory = pgTable(
+  "user_inventory",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    itemId: uuid("item_id").notNull().references(() => items.id, { onDelete: "cascade" }),
+    isEquipped: boolean("is_equipped").default(false).notNull(),
+    acquiredAt: timestamp("acquired_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.itemId)]
+)
+
+export const entities = pgTable("entities", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").unique().notNull(),
+  name: text("name").notNull(),
+  rarity: entityRarityEnum("rarity").notNull(),
+  hp: integer("hp").notNull(),
+  atk: integer("atk").notNull(),
+  def: integer("def").notNull(),
+  spd: integer("spd").notNull(),
+  creditReward: integer("credit_reward").notNull(),
+  xpReward: integer("xp_reward").notNull(),
+  lootTable: jsonb("loot_table").notNull().$type<{ itemSlug: string; chance: number }[]>(),
+  requiresFleet: boolean("requires_fleet").default(false).notNull(),
+  icon: text("icon").default("👾").notNull(),
+  description: text("description").notNull(),
+})
+
+export const battles = pgTable("battles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: uuid("entity_id").notNull().references(() => entities.id),
+  type: battleTypeEnum("type").notNull(),
+  status: battleStatusEnum("status").default("active").notNull(),
+  fleetId: uuid("fleet_id"),
+  entityHpRemaining: integer("entity_hp_remaining").notNull(),
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"),
+})
+
+export const battleParticipants = pgTable(
+  "battle_participants",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    battleId: uuid("battle_id").notNull().references(() => battles.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    pilotHpRemaining: integer("pilot_hp_remaining").notNull(),
+    totalDamageDealt: integer("total_damage_dealt").default(0).notNull(),
+    hasFled: boolean("has_fled").default(false).notNull(),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.battleId, t.userId)]
+)
+
+export const battleLog = pgTable("battle_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  battleId: uuid("battle_id").notNull().references(() => battles.id, { onDelete: "cascade" }),
+  actorUserId: uuid("actor_user_id").references(() => users.id),
+  damageDealt: integer("damage_dealt").default(0).notNull(),
+  isCritical: boolean("is_critical").default(false).notNull(),
+  description: text("description").notNull(),
+  turnNumber: integer("turn_number").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 export type User = typeof users.$inferSelect
 export type Track = typeof tracks.$inferSelect
 export type StarSystem = typeof starSystems.$inferSelect
@@ -277,3 +399,12 @@ export type Sector = typeof sectors.$inferSelect
 export type Mission = typeof missions.$inferSelect
 export type MissionProgress = typeof missionProgress.$inferSelect
 export type Medal = typeof medals.$inferSelect
+export type Fleet = typeof fleets.$inferSelect
+export type FleetMember = typeof fleetMembers.$inferSelect
+export type Ship = typeof ships.$inferSelect
+export type Item = typeof items.$inferSelect
+export type UserInventory = typeof userInventory.$inferSelect
+export type Entity = typeof entities.$inferSelect
+export type Battle = typeof battles.$inferSelect
+export type BattleParticipant = typeof battleParticipants.$inferSelect
+export type BattleLog = typeof battleLog.$inferSelect
