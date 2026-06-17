@@ -37,6 +37,10 @@ export async function TopBar() {
                 <span className="text-orange-400 font-medium">{resolvedUser.streak}</span>
               </div>
             )}
+            <div className="hidden sm:flex items-center gap-1 text-sm font-mono">
+              <span className="text-[#f59e0b]">⟁</span>
+              <span className="text-[#f59e0b] font-medium">{resolvedUser.credits.toLocaleString()} CR</span>
+            </div>
           </>
         )}
       </div>

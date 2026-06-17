@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { users, missionProgress, dailyLogs, medals, missions, sectors, starSystems } from "@/lib/db/schema"
+import { users, missionProgress, dailyLogs, medals, missions, sectors, starSystems, ships, items, userInventory } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 
 export const DEMO_CLERK_ID = "demo_user"
@@ -21,6 +21,7 @@ export async function resetDemoUser(): Promise<void> {
       rank: 2,
       track: "javascript",
       streak: 3,
+      credits: 200,
       onboardingCompleted: true,
       showOnLeaderboard: false,
       lastSeenAt: new Date(),
@@ -32,6 +33,7 @@ export async function resetDemoUser(): Promise<void> {
         totalXp: 150,
         rank: 2,
         streak: 3,
+        credits: 200,
         lastSeenAt: new Date(),
         deletedAt: null,
       },
@@ -81,5 +83,31 @@ export async function resetDemoUser(): Promise<void> {
         }))
       )
       .onConflictDoNothing()
+  }
+
+  // Upsert starter ship for demo user
+  await db
+    .insert(ships)
+    .values({ userId: demoUser.id, name: "Starfire I" })
+    .onConflictDoUpdate({
+      target: ships.userId,
+      set: { name: "Starfire I" },
+    })
+
+  // Give demo user hull-plating-i (starter shield) if items table is populated
+  const [starterItem] = await db
+    .select()
+    .from(items)
+    .where(eq(items.slug, "hull-plating-i"))
+    .limit(1)
+
+  if (starterItem) {
+    await db
+      .insert(userInventory)
+      .values({ userId: demoUser.id, itemId: starterItem.id, isEquipped: true })
+      .onConflictDoUpdate({
+        target: [userInventory.userId, userInventory.itemId],
+        set: { isEquipped: true },
+      })
   }
 }

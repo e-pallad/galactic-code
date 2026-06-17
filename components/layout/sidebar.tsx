@@ -13,6 +13,10 @@ import {
   Trophy,
   Settings,
   Zap,
+  Anchor,
+  ShoppingBag,
+  Swords,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -22,6 +26,10 @@ const navItems = [
   { href: "/mission-log", label: "Mission Log", icon: ScrollText },
   { href: "/character", label: "Character", icon: User },
   { href: "/operations", label: "Operations", icon: Rocket },
+  { href: "/hangar", label: "Hangar", icon: Anchor },
+  { href: "/armory", label: "Armory", icon: ShoppingBag },
+  { href: "/combat", label: "Combat", icon: Swords },
+  { href: "/fleet", label: "Fleet", icon: Users },
   { href: "/sim-bay", label: "Sim Bay", icon: Cpu },
   { href: "/star-map", label: "Star Map", icon: Map },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
