@@ -40,16 +40,7 @@ export async function TopBar() {
           </>
         )}
       </div>
-      {demo ? (
-        <Link
-          href="/sign-up"
-          className="px-3 py-1.5 rounded-md bg-[#06B6D4] text-[#080C14] font-medium text-sm hover:bg-[#06B6D4]/90 transition-colors"
-        >
-          Sign up free
-        </Link>
-      ) : (
-        <UserButton />
-      )}
+      {!demo && <UserButton />}
     </header>
   )
 }
