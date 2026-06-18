@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FleetCard } from "./fleet-card"
 import { CreateFleetForm } from "./create-fleet-form"
 import { FleetLeaderboard } from "./fleet-leaderboard"
@@ -48,6 +49,7 @@ export function FleetPageClient({ fleet, fleetId, members, myRole, userId, activ
   const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
+  const [transferTarget, setTransferTarget] = useState<Member | null>(null)
 
   const handleSearch = async () => {
     if (!searchQ.trim() || searching) return
@@ -128,6 +130,30 @@ export function FleetPageClient({ fleet, fleetId, members, myRole, userId, activ
     }
   }
 
+  const handleTransfer = async () => {
+    if (loading || !fleetId || !transferTarget) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/combat/fleets/${fleetId}/transfer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: transferTarget.user.id }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Could not transfer captaincy", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      toast({ title: "Captaincy transferred", description: `${transferTarget.user.name ?? "A pilot"} now commands the fleet.`, variant: "success" })
+      setTransferTarget(null)
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not transfer captaincy.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleBattle = async (battleId: string, isParticipant: boolean) => {
     if (isParticipant) {
       router.push(`/combat/${battleId}`)
@@ -203,11 +229,14 @@ export function FleetPageClient({ fleet, fleetId, members, myRole, userId, activ
                     <p className="text-xs text-[#94a3b8]">Rank {m.user.rank} · {m.user.totalXp.toLocaleString()} XP</p>
                   </div>
                   {canManage && (
-                    m.member.role === "pilot" ? (
-                      <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "officer")} disabled={loading}>Promote</Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "pilot")} disabled={loading}>Demote</Button>
-                    )
+                    <div className="flex items-center gap-2 shrink-0">
+                      {m.member.role === "pilot" ? (
+                        <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "officer")} disabled={loading}>Promote</Button>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "pilot")} disabled={loading}>Demote</Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => setTransferTarget(m)} disabled={loading}>Make Captain</Button>
+                    </div>
                   )}
                   <span className="text-xs capitalize px-2 py-0.5 rounded bg-[#06B6D4]/10 text-[#06B6D4] border border-[#06B6D4]/20 shrink-0">
                     {m.member.role}
@@ -239,10 +268,28 @@ export function FleetPageClient({ fleet, fleetId, members, myRole, userId, activ
           </Button>
         )}
         {isCaptain && members.length > 1 && (
-          <p className="text-xs text-[#94a3b8]">Promote a pilot and transfer captaincy before you can leave. (Captaincy transfer coming soon.)</p>
+          <p className="text-xs text-[#94a3b8]">Use “Make Captain” to hand over command — once you&apos;re no longer captain you can leave the fleet.</p>
         )}
 
         <FleetLeaderboard myTag={fleet.tag} />
+
+        <Dialog open={!!transferTarget} onOpenChange={(open) => !open && setTransferTarget(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Transfer captaincy?</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-[#94a3b8]">
+                {transferTarget?.user.name ?? "This pilot"} will become the fleet captain and you will
+                step down to officer. This can&apos;t be undone unless the new captain hands it back.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setTransferTarget(null)} disabled={loading}>Cancel</Button>
+                <Button onClick={handleTransfer} disabled={loading}>{loading ? "Transferring…" : "Confirm"}</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     )
   }

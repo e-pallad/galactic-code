@@ -16,7 +16,6 @@ export async function resetDemoUser(): Promise<void> {
       email: "demo@galactic.code",
       name: "Demo Pilot",
       avatarUrl: null,
-      role: "user",
       totalXp: 150,
       rank: 2,
       track: "javascript",

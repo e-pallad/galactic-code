@@ -12,7 +12,6 @@ import {
 } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
-export const userRoleEnum = pgEnum("user_role", ["user", "admin", "moderator"])
 export const missionTypeEnum = pgEnum("mission_type", [
   "briefing",
   "training-op",
@@ -46,7 +45,6 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   name: text("name"),
   avatarUrl: text("avatar_url"),
-  role: userRoleEnum("role").default("user").notNull(),
   totalXp: integer("total_xp").default(0).notNull(),
   rank: integer("rank").default(1).notNull(),
   track: text("track").default("javascript").notNull(),
