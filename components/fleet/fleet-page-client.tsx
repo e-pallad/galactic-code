@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FleetCard } from "./fleet-card"
 import { CreateFleetForm } from "./create-fleet-form"
+import { toast } from "@/hooks/use-toast"
 
 interface Member {
   member: { id: string; role: string }
@@ -30,32 +31,65 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
   const router = useRouter()
   const [searchQ, setSearchQ] = useState("")
   const [searchResults, setSearchResults] = useState<Array<FleetData & { id: string }>>([])
+  const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
 
   const handleSearch = async () => {
-    if (!searchQ.trim()) return
-    const res = await fetch(`/api/combat/fleets/search?q=${encodeURIComponent(searchQ)}`)
-    const data = await res.json() as { fleets?: Array<FleetData & { id: string }> }
-    setSearchResults(data.fleets ?? [])
+    if (!searchQ.trim() || searching) return
+    setSearching(true)
+    try {
+      const res = await fetch(`/api/combat/fleets/search?q=${encodeURIComponent(searchQ)}`)
+      const data = await res.json().catch(() => ({})) as { fleets?: Array<FleetData & { id: string }> }
+      setSearchResults(data.fleets ?? [])
+      setSearched(true)
+    } catch {
+      toast({ title: "Search failed", description: "Could not reach the fleet registry.", variant: "destructive" })
+    } finally {
+      setSearching(false)
+    }
   }
 
   const handleJoin = async (tag: string) => {
+    if (loading) return
     setLoading(true)
-    await fetch("/api/combat/fleets/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tag }),
-    })
-    setLoading(false)
-    router.refresh()
+    try {
+      const res = await fetch("/api/combat/fleets/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tag }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Could not join fleet", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      toast({ title: "Joined fleet", description: `Welcome to [${tag}]!`, variant: "success" })
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the fleet registry.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleLeave = async () => {
+    if (loading) return
     setLoading(true)
-    await fetch("/api/combat/fleets/leave", { method: "POST" })
-    setLoading(false)
-    router.refresh()
+    try {
+      const res = await fetch("/api/combat/fleets/leave", { method: "POST" })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Could not leave fleet", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the fleet registry.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (fleet) {
@@ -131,7 +165,9 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
           className="max-w-xs"
           onKeyDown={(e) => e.key === "Enter" && handleSearch()}
         />
-        <Button variant="outline" onClick={handleSearch}>Search</Button>
+        <Button variant="outline" onClick={handleSearch} disabled={searching || !searchQ.trim()}>
+          {searching ? "Searching…" : "Search"}
+        </Button>
       </div>
       {searchResults.length > 0 && (
         <div className="space-y-2">
@@ -142,6 +178,9 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
             </div>
           ))}
         </div>
+      )}
+      {searched && !searching && searchResults.length === 0 && (
+        <p className="text-[#94a3b8] text-sm">No fleets match “{searchQ}”. Try a different name or tag, or create your own.</p>
       )}
       <Button onClick={() => setShowCreate(true)}>Create Fleet</Button>
     </div>

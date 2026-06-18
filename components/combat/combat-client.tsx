@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EntityCard } from "./entity-card"
+import { toast } from "@/hooks/use-toast"
 
 interface Entity {
   id: string
@@ -25,15 +26,27 @@ export function CombatClient({ entities, inFleet }: { entities: Entity[]; inFlee
   const [loading, setLoading] = useState(false)
 
   const handleEngage = async (entityId: string) => {
+    if (loading) return
     setLoading(true)
-    const res = await fetch("/api/combat/battles/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ entityId }),
-    })
-    const data = await res.json() as { battleId?: string; error?: string }
-    setLoading(false)
-    if (data.battleId) router.push(`/combat/${data.battleId}`)
+    try {
+      const res = await fetch("/api/combat/battles/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entityId }),
+      })
+      const data = await res.json().catch(() => ({})) as { battleId?: string; error?: string }
+      if (!res.ok || !data.battleId) {
+        toast({ title: "Could not engage", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        setLoading(false)
+        return
+      }
+      router.push(`/combat/${data.battleId}`)
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the arena.", variant: "destructive" })
+      setLoading(false)
+    }
+    // On success we navigate away, so loading intentionally stays true to keep
+    // the buttons disabled until the route transition completes.
   }
 
   const soloEntities = entities.filter((e) => !e.requiresFleet)

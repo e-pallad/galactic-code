@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ItemCard } from "./item-card"
+import { toast } from "@/hooks/use-toast"
 
 interface BaseItem {
   id: string
@@ -40,37 +41,50 @@ export function ArmoryClient({ shopItems, inventory }: ArmoryClientProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
-  const handleBuy = async (itemId: string) => {
+  const handleBuy = async (itemId: string, itemName: string) => {
+    if (loading) return
     setLoading(true)
-    await fetch("/api/combat/shop/buy", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId }),
-    })
-    setLoading(false)
-    router.refresh()
+    try {
+      const res = await fetch("/api/combat/shop/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Purchase failed", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      toast({ title: "Purchased", description: `${itemName} added to your gear.`, variant: "success" })
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the shop.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleEquip = async (inventoryId: string) => {
+  const handleEquipToggle = async (inventoryId: string, equip: boolean, itemName: string) => {
+    if (loading) return
     setLoading(true)
-    await fetch("/api/combat/inventory/equip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inventoryId, equip: true }),
-    })
-    setLoading(false)
-    router.refresh()
-  }
-
-  const handleUnequip = async (inventoryId: string) => {
-    setLoading(true)
-    await fetch("/api/combat/inventory/equip", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ inventoryId, equip: false }),
-    })
-    setLoading(false)
-    router.refresh()
+    try {
+      const res = await fetch("/api/combat/inventory/equip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inventoryId, equip }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: equip ? "Equip failed" : "Unequip failed", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      toast({ title: equip ? "Equipped" : "Unequipped", description: itemName, variant: "success" })
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not update your gear.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -83,7 +97,7 @@ export function ArmoryClient({ shopItems, inventory }: ArmoryClientProps) {
       <TabsContent value="shop" className="mt-4">
         <div className="grid sm:grid-cols-2 gap-4">
           {shopItems.map((item) => (
-            <ItemCard key={item.id} item={item} onBuy={() => handleBuy(item.id)} loading={loading} />
+            <ItemCard key={item.id} item={item} onBuy={() => handleBuy(item.id, item.name)} loading={loading} />
           ))}
         </div>
       </TabsContent>
@@ -98,8 +112,8 @@ export function ArmoryClient({ shopItems, inventory }: ArmoryClientProps) {
                 key={row.inventoryId}
                 item={row.item}
                 isEquipped={row.isEquipped}
-                onEquip={() => handleEquip(row.inventoryId)}
-                onUnequip={() => handleUnequip(row.inventoryId)}
+                onEquip={() => handleEquipToggle(row.inventoryId, true, row.item.name)}
+                onUnequip={() => handleEquipToggle(row.inventoryId, false, row.item.name)}
                 loading={loading}
               />
             ))}

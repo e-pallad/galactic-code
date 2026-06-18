@@ -27,7 +27,7 @@ export default function LandingPage() {
         <Hero />
         <Features />
         <footer className="py-12 px-6 text-center border-t border-[#1e2d3d] text-sm text-[#94a3b8]">
-          <p>© 2025 Galactic Code. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Galactic Code. All rights reserved.</p>
         </footer>
       </main>
     </div>

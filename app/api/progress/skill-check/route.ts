@@ -42,17 +42,17 @@ export async function POST(req: Request) {
     newXp: user.totalXp,
   }
 
-  await db.transaction(async (tx) => {
-    await tx.insert(skillCheckAttempts).values({
-      userId: user.id,
-      missionId,
-      score,
-      passed,
-      perfect,
-      xpEarned,
-    })
-    result = await awardXP(user.id, xpEarned, { tx })
+  // drizzle-orm/neon-http does not support interactive transactions
+  // (the driver throws on db.transaction()); run steps sequentially.
+  await db.insert(skillCheckAttempts).values({
+    userId: user.id,
+    missionId,
+    score,
+    passed,
+    perfect,
+    xpEarned,
   })
+  result = await awardXP(user.id, xpEarned)
 
   if (passed) {
     await awardCredits(user.id, perfect ? CREDIT_VALUES.SKILL_CHECK_PERFECT : CREDIT_VALUES.SKILL_CHECK_PASS)

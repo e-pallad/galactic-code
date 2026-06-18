@@ -64,9 +64,11 @@ export function CreateFleetForm({ onCreated }: CreateFleetFormProps) {
               key={e}
               type="button"
               onClick={() => setEmblem(e)}
+              aria-label={`Emblem ${e}`}
+              aria-pressed={emblem === e}
               className={`text-2xl p-2 rounded-lg border transition-all ${emblem === e ? "border-[#06B6D4] bg-[#06B6D4]/10" : "border-[#1e2d3d]"}`}
             >
-              {e}
+              <span aria-hidden="true">{e}</span>
             </button>
           ))}
         </div>

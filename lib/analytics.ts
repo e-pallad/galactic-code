@@ -37,8 +37,6 @@ type OperationEvent = {
   has_live_url: boolean
 }
 
-type DemoEvent = Record<string, never>
-
 export const analytics = {
   missionComplete: (props: MissionCompleteEvent) =>
     track("mission_complete", props),
@@ -58,6 +56,6 @@ export const analytics = {
   operationSubmit: (props: OperationEvent) =>
     track("operation_submit", props),
 
-  demoStarted: (_props: DemoEvent) =>
+  demoStarted: () =>
     track("demo_started"),
 }

@@ -45,19 +45,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
   // Resolve turn
   const turn = resolveTurn(stats, entity, user.id, user.name ?? "Pilot")
 
-  // Apply damage sequentially
-  const newEntityHp = Math.max(0, battle.entityHpRemaining - turn.pilotDamage)
-  const newPilotHp = Math.max(0, participant.pilotHpRemaining - turn.entityDamage)
-  const entityDefeated = newEntityHp <= 0
-  const pilotDefeated = newPilotHp <= 0
+  // Apply damage atomically. GREATEST(0, ...) clamps in SQL so concurrent
+  // attacks (fleet battles / double-clicks) can't read the same HP and
+  // over-apply, and RETURNING gives the true post-update value for the client.
+  const [updatedBattle] = await db
+    .update(battles)
+    .set({ entityHpRemaining: sql`GREATEST(0, ${battles.entityHpRemaining} - ${turn.pilotDamage})` })
+    .where(eq(battles.id, battleId))
+    .returning({ entityHpRemaining: battles.entityHpRemaining })
+  const newEntityHp = updatedBattle?.entityHpRemaining ?? 0
 
-  await db.update(battles).set({ entityHpRemaining: newEntityHp }).where(eq(battles.id, battleId))
-  await db.update(battleParticipants)
+  const [updatedParticipant] = await db
+    .update(battleParticipants)
     .set({
-      pilotHpRemaining: newPilotHp,
+      pilotHpRemaining: sql`GREATEST(0, ${battleParticipants.pilotHpRemaining} - ${turn.entityDamage})`,
       totalDamageDealt: sql`${battleParticipants.totalDamageDealt} + ${turn.pilotDamage}`,
     })
     .where(eq(battleParticipants.id, participant.id))
+    .returning({ pilotHpRemaining: battleParticipants.pilotHpRemaining })
+  const newPilotHp = updatedParticipant?.pilotHpRemaining ?? 0
+
+  const entityDefeated = newEntityHp <= 0
+  const pilotDefeated = newPilotHp <= 0
 
   for (const entry of turn.logEntries) {
     await db.insert(battleLog).values({
@@ -75,28 +84,38 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
   let xpAwarded = 0
 
   if (entityDefeated) {
-    const allItems = await db.select().from(items)
-    lootItems = rollLoot(entity, allItems)
+    // Atomically claim the victory: only the request that flips the battle from
+    // active -> victory awards loot/credits/XP, so two simultaneous killing
+    // blows in a fleet battle cannot double-pay rewards.
+    const claimed = await db
+      .update(battles)
+      .set({ status: "victory", endedAt: new Date() })
+      .where(and(eq(battles.id, battleId), eq(battles.status, "active")))
+      .returning({ id: battles.id })
 
-    for (const lootItem of lootItems) {
-      await db.insert(userInventory).values({ userId: user.id, itemId: lootItem.id }).onConflictDoNothing()
+    if (claimed.length > 0) {
+      const allItems = await db.select().from(items)
+      lootItems = rollLoot(entity, allItems)
+
+      for (const lootItem of lootItems) {
+        await db.insert(userInventory).values({ userId: user.id, itemId: lootItem.id }).onConflictDoNothing()
+      }
+
+      creditsAwarded = entity.creditReward
+      xpAwarded = entity.xpReward
+      await awardCredits(user.id, creditsAwarded)
+      await awardXP(user.id, xpAwarded)
+      await db.insert(battleLog).values({
+        battleId,
+        actorUserId: user.id,
+        damageDealt: 0,
+        isCritical: false,
+        description: `Victory! ${entity.name} has been defeated! +${creditsAwarded} CR, +${xpAwarded} XP`,
+        turnNumber: turnNumber + 1,
+      })
     }
-
-    creditsAwarded = entity.creditReward
-    xpAwarded = entity.xpReward
-    await awardCredits(user.id, creditsAwarded)
-    await awardXP(user.id, xpAwarded)
-    await db.update(battles).set({ status: "victory", endedAt: new Date() }).where(eq(battles.id, battleId))
-    await db.insert(battleLog).values({
-      battleId,
-      actorUserId: user.id,
-      damageDealt: 0,
-      isCritical: false,
-      description: `Victory! ${entity.name} has been defeated! +${creditsAwarded} CR, +${xpAwarded} XP`,
-      turnNumber: turnNumber + 1,
-    })
   } else if (pilotDefeated) {
-    await db.update(battles).set({ status: "defeat", endedAt: new Date() }).where(eq(battles.id, battleId))
+    await db.update(battles).set({ status: "defeat", endedAt: new Date() }).where(and(eq(battles.id, battleId), eq(battles.status, "active")))
     await db.insert(battleLog).values({
       battleId,
       actorUserId: null,

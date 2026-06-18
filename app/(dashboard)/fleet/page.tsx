@@ -11,9 +11,9 @@ import { Users } from "lucide-react"
 
 export default async function FleetPage() {
   const clerkId = await getClerkId()
-  if (!clerkId) redirect("/")
+  if (!clerkId) redirect("/sign-in")
   const user = await getUser(clerkId)
-  if (!user) redirect("/")
+  if (!user) redirect("/sign-in")
 
   const [membership] = await db
     .select()

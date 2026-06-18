@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { users, ships, items, userInventory } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, and, gte } from "drizzle-orm"
 import type { Ship, Item, Entity } from "@/lib/db/schema"
 
 export const CREDIT_VALUES = {
@@ -100,14 +100,16 @@ export async function awardCredits(userId: string, amount: number): Promise<{ ne
 }
 
 export async function deductCredits(userId: string, amount: number): Promise<{ newBalance: number } | null> {
-  const [currentUser] = await db.select({ credits: users.credits }).from(users).where(eq(users.id, userId)).limit(1)
-  if (!currentUser || currentUser.credits < amount) return null
-  const [updated] = await db
+  // Atomic conditional deduction: the `credits >= amount` guard lives inside the
+  // UPDATE so two concurrent purchases cannot both pass a separate read-check and
+  // drive the balance negative. No row is returned when funds are insufficient.
+  const updated = await db
     .update(users)
     .set({ credits: sql`${users.credits} - ${amount}` })
-    .where(eq(users.id, userId))
+    .where(and(eq(users.id, userId), gte(users.credits, amount)))
     .returning({ credits: users.credits })
-  return { newBalance: updated?.credits ?? 0 }
+  if (updated.length === 0) return null
+  return { newBalance: updated[0].credits }
 }
 
 export async function getOrCreateShip(userId: string): Promise<Ship> {

@@ -42,11 +42,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
     turnNumber,
   })
 
-  // Check if all participants fled
+  // End the battle once no active pilots remain. A pilot is inactive if they have
+  // fled OR been defeated (0 HP) — otherwise a fleet battle where everyone else is
+  // already down would never end after the last pilot flees.
   const allParticipants = await db.select().from(battleParticipants).where(eq(battleParticipants.battleId, battleId))
-  const allFled = allParticipants.every((p) => p.hasFled || p.id === participant.id)
-  if (allFled) {
-    await db.update(battles).set({ status: "fled", endedAt: new Date() }).where(eq(battles.id, battleId))
+  const noneActive = allParticipants.every((p) => p.hasFled || p.pilotHpRemaining <= 0)
+  if (noneActive) {
+    await db.update(battles).set({ status: "fled", endedAt: new Date() }).where(and(eq(battles.id, battleId), eq(battles.status, "active")))
   }
 
   return NextResponse.json({ success: true, partingDamage: partingDmg, newHp })

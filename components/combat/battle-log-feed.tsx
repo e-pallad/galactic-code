@@ -17,7 +17,12 @@ export function BattleLogFeed({ logs, currentUserId }: { logs: LogEntry[]; curre
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [logs])
 
   return (
-    <div className="h-64 overflow-y-auto rounded-xl border border-[#1e2d3d] bg-[#080C14] p-3 space-y-1.5">
+    <div
+      role="log"
+      aria-live="polite"
+      aria-label="Battle log"
+      className="h-64 overflow-y-auto rounded-xl border border-[#1e2d3d] bg-[#080C14] p-3 space-y-1.5"
+    >
       {logs.map((log) => (
         <p
           key={log.id}

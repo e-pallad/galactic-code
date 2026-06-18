@@ -25,6 +25,12 @@ export async function POST(req: Request) {
   const [fleet] = await db.select().from(fleets).where(eq(fleets.tag, parsed.data.tag.toUpperCase())).limit(1)
   if (!fleet) return NextResponse.json({ error: "Fleet not found" }, { status: 404 })
 
-  await db.insert(fleetMembers).values({ fleetId: fleet.id, userId: user.id, role: "pilot" })
+  const joined = await db
+    .insert(fleetMembers)
+    .values({ fleetId: fleet.id, userId: user.id, role: "pilot" })
+    .onConflictDoNothing()
+    .returning({ id: fleetMembers.id })
+  if (joined.length === 0) return NextResponse.json({ error: "Already in this fleet" }, { status: 409 })
+
   return NextResponse.json({ success: true, fleet })
 }

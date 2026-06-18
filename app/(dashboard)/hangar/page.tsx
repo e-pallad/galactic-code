@@ -12,9 +12,9 @@ import Link from "next/link"
 
 export default async function HangarPage() {
   const clerkId = await getClerkId()
-  if (!clerkId) redirect("/")
+  if (!clerkId) redirect("/sign-in")
   const user = await getUser(clerkId)
-  if (!user) redirect("/")
+  if (!user) redirect("/sign-in")
 
   const ship = await getOrCreateShip(user.id)
   const equippedItems = await getEquippedItems(user.id)

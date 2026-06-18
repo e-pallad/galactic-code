@@ -11,9 +11,9 @@ import { Swords } from "lucide-react"
 
 export default async function CombatPage() {
   const clerkId = await getClerkId()
-  if (!clerkId) redirect("/")
+  if (!clerkId) redirect("/sign-in")
   const user = await getUser(clerkId)
-  if (!user) redirect("/")
+  if (!user) redirect("/sign-in")
 
   const allEntities = await db.select().from(entities)
   const [membership] = await db.select().from(fleetMembers).where(eq(fleetMembers.userId, user.id)).limit(1)

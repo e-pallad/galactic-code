@@ -5,7 +5,6 @@ import { getUser } from "@/lib/missions"
 import { getRankProgress } from "@/lib/xp"
 import { DEMO_CLERK_ID } from "@/lib/demo"
 import { Zap, Flame } from "lucide-react"
-import Link from "next/link"
 
 export async function TopBar() {
   const jar = await cookies()

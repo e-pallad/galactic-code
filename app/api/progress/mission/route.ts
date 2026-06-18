@@ -58,38 +58,39 @@ export async function POST(req: Request) {
     newXp: user.totalXp,
   }
 
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(missionProgress)
-      .values({
-        userId: user.id,
-        missionId,
-        status,
-        xpEarned: xpAmount,
-        usedFocusCycle: usedFocusCycle ?? false,
-        completedAt: action === "complete" ? new Date() : null,
-      })
+  // drizzle-orm/neon-http uses a batch HTTP API that does not support
+  // interactive transactions (the driver throws on db.transaction()).
+  // Run each step as a sequential await instead.
+  await db
+    .insert(missionProgress)
+    .values({
+      userId: user.id,
+      missionId,
+      status,
+      xpEarned: xpAmount,
+      usedFocusCycle: usedFocusCycle ?? false,
+      completedAt: action === "complete" ? new Date() : null,
+    })
+    .onConflictDoUpdate({
+      target: [missionProgress.userId, missionProgress.missionId],
+      set: { status, xpEarned: xpAmount, usedFocusCycle: usedFocusCycle ?? false, completedAt: action === "complete" ? new Date() : null },
+    })
+
+  // Only award XP if this is a new completion (not re-completing an already-completed mission)
+  if (!alreadyCompleted) {
+    result = await awardXP(user.id, xpAmount)
+  }
+
+  if (action === "complete") {
+    const today = startOfDay(new Date()).toISOString().slice(0, 10)
+    await db
+      .insert(dailyLogs)
+      .values({ userId: user.id, date: today, missionsCompleted: 1, xpEarned: 0 })
       .onConflictDoUpdate({
-        target: [missionProgress.userId, missionProgress.missionId],
-        set: { status, xpEarned: xpAmount, usedFocusCycle: usedFocusCycle ?? false, completedAt: action === "complete" ? new Date() : null },
+        target: [dailyLogs.userId, dailyLogs.date],
+        set: { missionsCompleted: sql`${dailyLogs.missionsCompleted} + 1` },
       })
-
-    // Only award XP if this is a new completion (not re-completing an already-completed mission)
-    if (!alreadyCompleted) {
-      result = await awardXP(user.id, xpAmount, { tx })
-    }
-
-    if (action === "complete") {
-      const today = startOfDay(new Date()).toISOString().slice(0, 10)
-      await tx
-        .insert(dailyLogs)
-        .values({ userId: user.id, date: today, missionsCompleted: 1, xpEarned: 0 })
-        .onConflictDoUpdate({
-          target: [dailyLogs.userId, dailyLogs.date],
-          set: { missionsCompleted: sql`${dailyLogs.missionsCompleted} + 1` },
-        })
-    }
-  })
+  }
 
   // Award credits for mission completion (only for fresh completions)
   if (!alreadyCompleted && action === "complete") {

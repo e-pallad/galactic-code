@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { battles, battleParticipants, battleLog } from "@/lib/db/schema"
+import { battles, battleParticipants, battleLog, fleetMembers } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { getOrCreateShip, getEquippedItems, getEffectiveStats } from "@/lib/combat"
@@ -19,6 +19,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
   const [battle] = await db.select().from(battles).where(eq(battles.id, battleId)).limit(1)
   if (!battle || battle.status !== "active") return NextResponse.json({ error: "Battle not found or ended" }, { status: 404 })
   if (!battle.fleetId) return NextResponse.json({ error: "Not a fleet battle" }, { status: 400 })
+
+  // Only members of the battle's fleet may join it.
+  const [membership] = await db.select().from(fleetMembers)
+    .where(and(eq(fleetMembers.fleetId, battle.fleetId), eq(fleetMembers.userId, user.id)))
+    .limit(1)
+  if (!membership) return NextResponse.json({ error: "You are not a member of this fleet" }, { status: 403 })
 
   // Check already in battle
   const [alreadyIn] = await db.select().from(battleParticipants)

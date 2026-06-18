@@ -27,9 +27,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ fleetI
     .where(and(eq(fleetMembers.fleetId, fleetId), eq(fleetMembers.userId, user.id)))
     .limit(1)
   if (!myMembership || myMembership.role !== "captain") return NextResponse.json({ error: "Only captains can change roles" }, { status: 403 })
+  if (parsed.data.targetUserId === user.id) return NextResponse.json({ error: "Captains cannot change their own role" }, { status: 400 })
 
-  await db.update(fleetMembers).set({ role: parsed.data.role })
+  // Only update if the target is actually a member of this fleet; an empty
+  // RETURNING means there was no such member, so report 404 instead of a silent no-op.
+  const updated = await db.update(fleetMembers).set({ role: parsed.data.role })
     .where(and(eq(fleetMembers.fleetId, fleetId), eq(fleetMembers.userId, parsed.data.targetUserId)))
+    .returning({ id: fleetMembers.id })
+  if (updated.length === 0) return NextResponse.json({ error: "Target is not a member of this fleet" }, { status: 404 })
 
   return NextResponse.json({ success: true })
 }

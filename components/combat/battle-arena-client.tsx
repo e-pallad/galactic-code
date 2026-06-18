@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { BattleLogFeed } from "./battle-log-feed"
 import { LootRevealModal } from "./loot-reveal-modal"
+import { toast } from "@/hooks/use-toast"
 import Link from "next/link"
 
 interface Entity {
@@ -52,6 +53,7 @@ interface BattleArenaClientProps {
   logs: LogEntry[]
   userId: string
   userName: string
+  pilotMaxHp: number
 }
 
 function HpBar({ current, max, label, color }: { current: number; max: number; label: string; color: string }) {
@@ -79,6 +81,7 @@ export function BattleArenaClient({
   logs: initialLogs,
   userId,
   userName,
+  pilotMaxHp,
 }: BattleArenaClientProps) {
   const router = useRouter()
   const [battle, setBattle] = useState(initialBattle)
@@ -86,21 +89,25 @@ export function BattleArenaClient({
   const [logs, setLogs] = useState(initialLogs)
   const [loading, setLoading] = useState(false)
   const [lootModal, setLootModal] = useState<{ lootItems: LootItem[]; creditsEarned: number; xpEarned: number } | null>(null)
-  const [pilotMaxHp] = useState(initialParticipant.pilotHpRemaining)
 
   const handleAttack = async () => {
     if (loading || battle.status !== "active") return
     setLoading(true)
-    const res = await fetch(`/api/combat/battles/${battle.id}/attack`, { method: "POST" })
-    const data = await res.json() as {
-      newEntityHp?: number
-      newPilotHp?: number
-      battleStatus?: string
-      lootItems?: LootItem[]
-      creditsAwarded?: number
-      xpAwarded?: number
-    }
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/combat/battles/${battle.id}/attack`, { method: "POST" })
+      const data = await res.json() as {
+        error?: string
+        newEntityHp?: number
+        newPilotHp?: number
+        battleStatus?: string
+        lootItems?: LootItem[]
+        creditsAwarded?: number
+        xpAwarded?: number
+      }
+      if (!res.ok) {
+        toast({ title: "Attack failed", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
       if (data.newEntityHp !== undefined) setBattle((b) => ({ ...b, entityHpRemaining: data.newEntityHp! }))
       if (data.newPilotHp !== undefined) setParticipant((p) => ({ ...p, pilotHpRemaining: data.newPilotHp! }))
       if (data.battleStatus) setBattle((b) => ({ ...b, status: data.battleStatus! }))
@@ -110,16 +117,29 @@ export function BattleArenaClient({
       if (data.battleStatus === "victory") {
         setLootModal({ lootItems: data.lootItems ?? [], creditsEarned: data.creditsAwarded ?? 0, xpEarned: data.xpAwarded ?? 0 })
       }
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the battle server.", variant: "destructive" })
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const handleFlee = async () => {
     if (loading) return
     setLoading(true)
-    await fetch(`/api/combat/battles/${battle.id}/flee`, { method: "POST" })
-    setLoading(false)
-    router.push("/combat")
+    try {
+      const res = await fetch(`/api/combat/battles/${battle.id}/flee`, { method: "POST" })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: string }
+        toast({ title: "Could not flee", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      router.push("/combat")
+    } catch {
+      toast({ title: "Connection error", description: "Could not reach the battle server.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const isOver = battle.status !== "active"
@@ -154,6 +174,17 @@ export function BattleArenaClient({
             {loading ? "Processing..." : "⚔️ Attack"}
           </Button>
           <Button variant="outline" onClick={handleFlee} disabled={loading}>Flee</Button>
+        </div>
+      )}
+
+      {battle.status === "victory" && !lootModal && (
+        <div className="text-center space-y-3 rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/5 p-5">
+          <p className="text-2xl">🏆</p>
+          <p className="font-heading text-lg font-bold text-[#f59e0b]">Victory!</p>
+          <p className="text-[#94a3b8] text-sm">
+            {entity.name} has been defeated. You earned +{entity.creditReward} CR and +{entity.xpReward} XP.
+          </p>
+          <Link href="/combat"><Button>Return to Arena</Button></Link>
         </div>
       )}
 
