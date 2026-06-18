@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { FleetCard } from "./fleet-card"
 import { CreateFleetForm } from "./create-fleet-form"
+import { FleetLeaderboard } from "./fleet-leaderboard"
 import { toast } from "@/hooks/use-toast"
 
 interface Member {
@@ -20,14 +21,26 @@ interface FleetData {
   totalXp: number
 }
 
+interface ActiveBattle {
+  id: string
+  entityName: string
+  entityIcon: string
+  entityHpRemaining: number
+  entityMaxHp: number
+  participantCount: number
+  isParticipant: boolean
+}
+
 interface FleetPageClientProps {
   fleet: FleetData | null
+  fleetId: string | null
   members: Member[]
   myRole: string | null
   userId: string
+  activeBattles: ActiveBattle[]
 }
 
-export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageClientProps) {
+export function FleetPageClient({ fleet, fleetId, members, myRole, userId, activeBattles }: FleetPageClientProps) {
   const router = useRouter()
   const [searchQ, setSearchQ] = useState("")
   const [searchResults, setSearchResults] = useState<Array<FleetData & { id: string }>>([])
@@ -92,33 +105,120 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
     }
   }
 
+  const handleRole = async (targetUserId: string, role: "officer" | "pilot") => {
+    if (loading || !fleetId) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/combat/fleets/${fleetId}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId, role }),
+      })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Could not update role", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        return
+      }
+      toast({ title: role === "officer" ? "Promoted to officer" : "Demoted to pilot", variant: "success" })
+      router.refresh()
+    } catch {
+      toast({ title: "Connection error", description: "Could not update the role.", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBattle = async (battleId: string, isParticipant: boolean) => {
+    if (isParticipant) {
+      router.push(`/combat/${battleId}`)
+      return
+    }
+    if (loading) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/combat/battles/${battleId}/join`, { method: "POST" })
+      const data = await res.json().catch(() => ({})) as { error?: string }
+      if (!res.ok) {
+        toast({ title: "Could not join battle", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        setLoading(false)
+        return
+      }
+      router.push(`/combat/${battleId}`)
+    } catch {
+      toast({ title: "Connection error", description: "Could not join the battle.", variant: "destructive" })
+      setLoading(false)
+    }
+  }
+
   if (fleet) {
+    const isCaptain = myRole === "captain"
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <FleetCard fleet={fleet} memberCount={members.length} />
+
+        {activeBattles.length > 0 && (
+          <div>
+            <h2 className="text-sm font-medium text-[#94a3b8] mb-3">Active Fleet Battles</h2>
+            <div className="space-y-2">
+              {activeBattles.map((b) => {
+                const pct = Math.max(0, Math.min(100, b.entityMaxHp > 0 ? (b.entityHpRemaining / b.entityMaxHp) * 100 : 0))
+                return (
+                  <div key={b.id} className="rounded-xl border border-[#f59e0b]/30 bg-[#f59e0b]/5 p-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl shrink-0" aria-hidden="true">{b.entityIcon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[#e2e8f0] truncate">{b.entityName}</p>
+                        <p className="text-xs text-[#94a3b8]">{b.participantCount} {b.participantCount === 1 ? "pilot" : "pilots"} engaged</p>
+                      </div>
+                      <Button size="sm" onClick={() => handleBattle(b.id, b.isParticipant)} disabled={loading}>
+                        {b.isParticipant ? "Enter" : "Join Battle"}
+                      </Button>
+                    </div>
+                    <div className="mt-2 h-2 bg-[#1e2d3d] rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-[#ef4444] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <div>
           <h2 className="text-sm font-medium text-[#94a3b8] mb-3">Pilots ({members.length})</h2>
           <div className="space-y-2">
-            {members.map((m) => (
-              <div key={m.member.id} className="flex items-center gap-3 rounded-xl border border-[#1e2d3d] bg-[#0d1520] p-3">
-                <div className="h-8 w-8 rounded-full bg-[#06B6D4]/10 flex items-center justify-center text-[#06B6D4] text-sm font-bold shrink-0">
-                  {m.user.name?.[0] ?? "?"}
+            {members.map((m) => {
+              const isMe = m.user.id === userId
+              const canManage = isCaptain && !isMe && m.member.role !== "captain"
+              return (
+                <div key={m.member.id} className="flex items-center gap-3 rounded-xl border border-[#1e2d3d] bg-[#0d1520] p-3">
+                  <div className="h-8 w-8 rounded-full bg-[#06B6D4]/10 flex items-center justify-center text-[#06B6D4] text-sm font-bold shrink-0">
+                    {m.user.name?.[0] ?? "?"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#e2e8f0] truncate">
+                      {m.user.name ?? "Unknown Pilot"}
+                      {isMe && <span className="text-xs text-[#94a3b8] ml-1">(you)</span>}
+                    </p>
+                    <p className="text-xs text-[#94a3b8]">Rank {m.user.rank} · {m.user.totalXp.toLocaleString()} XP</p>
+                  </div>
+                  {canManage && (
+                    m.member.role === "pilot" ? (
+                      <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "officer")} disabled={loading}>Promote</Button>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => handleRole(m.user.id, "pilot")} disabled={loading}>Demote</Button>
+                    )
+                  )}
+                  <span className="text-xs capitalize px-2 py-0.5 rounded bg-[#06B6D4]/10 text-[#06B6D4] border border-[#06B6D4]/20 shrink-0">
+                    {m.member.role}
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-[#e2e8f0] truncate">
-                    {m.user.name ?? "Unknown Pilot"}
-                    {m.user.id === userId && <span className="text-xs text-[#94a3b8] ml-1">(you)</span>}
-                  </p>
-                  <p className="text-xs text-[#94a3b8]">Rank {m.user.rank} · {m.user.totalXp.toLocaleString()} XP</p>
-                </div>
-                <span className="text-xs capitalize px-2 py-0.5 rounded bg-[#06B6D4]/10 text-[#06B6D4] border border-[#06B6D4]/20 shrink-0">
-                  {m.member.role}
-                </span>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
-        {myRole !== "captain" && (
+
+        {!isCaptain && (
           <Button
             variant="outline"
             onClick={handleLeave}
@@ -128,7 +228,7 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
             Leave Fleet
           </Button>
         )}
-        {myRole === "captain" && members.length === 1 && (
+        {isCaptain && members.length === 1 && (
           <Button
             variant="outline"
             onClick={handleLeave}
@@ -138,6 +238,11 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
             Disband Fleet
           </Button>
         )}
+        {isCaptain && members.length > 1 && (
+          <p className="text-xs text-[#94a3b8]">Promote a pilot and transfer captaincy before you can leave. (Captaincy transfer coming soon.)</p>
+        )}
+
+        <FleetLeaderboard myTag={fleet.tag} />
       </div>
     )
   }
@@ -155,7 +260,7 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <p className="text-[#94a3b8] text-sm">You are not in a fleet. Search for one to join or create your own.</p>
       <div className="flex gap-2">
         <Input
@@ -183,6 +288,8 @@ export function FleetPageClient({ fleet, members, myRole, userId }: FleetPageCli
         <p className="text-[#94a3b8] text-sm">No fleets match “{searchQ}”. Try a different name or tag, or create your own.</p>
       )}
       <Button onClick={() => setShowCreate(true)}>Create Fleet</Button>
+
+      <FleetLeaderboard />
     </div>
   )
 }

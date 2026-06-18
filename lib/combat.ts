@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { users, ships, items, userInventory } from "@/lib/db/schema"
+import { users, ships, items, userInventory, fleets, fleetMembers } from "@/lib/db/schema"
 import { eq, sql, and, gte } from "drizzle-orm"
 import type { Ship, Item, Entity } from "@/lib/db/schema"
 
@@ -117,6 +117,18 @@ export async function getOrCreateShip(userId: string): Promise<Ship> {
   if (existing) return existing
   const [created] = await db.insert(ships).values({ userId }).returning()
   return created
+}
+
+/** Recompute and persist a fleet's totalXp as the sum of its members' XP. */
+export async function recomputeFleetXp(fleetId: string): Promise<number> {
+  const [agg] = await db
+    .select({ total: sql<number>`COALESCE(SUM(${users.totalXp}), 0)` })
+    .from(fleetMembers)
+    .innerJoin(users, eq(users.id, fleetMembers.userId))
+    .where(eq(fleetMembers.fleetId, fleetId))
+  const total = Number(agg?.total ?? 0)
+  await db.update(fleets).set({ totalXp: total }).where(eq(fleets.id, fleetId))
+  return total
 }
 
 export async function getEquippedItems(userId: string): Promise<Item[]> {

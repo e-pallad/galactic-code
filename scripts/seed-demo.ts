@@ -1,6 +1,5 @@
 import { db } from "@/lib/db"
-import { tracks, starSystems, sectors, missions, users } from "@/lib/db/schema"
-import { eq, asc } from "drizzle-orm"
+import { tracks, starSystems, sectors, missions } from "@/lib/db/schema"
 
 async function seed() {
   console.log("🚀 Seeding demo data...")
@@ -84,15 +83,6 @@ async function seed() {
     }
 
     console.log("✓ Python missions seeded")
-  }
-
-  // Set first user as admin
-  const [firstUser] = await db.select().from(users).orderBy(asc(users.createdAt)).limit(1)
-  if (firstUser) {
-    await db.update(users).set({ role: "admin" }).where(eq(users.id, firstUser.id))
-    console.log(`✓ Set ${firstUser.email} as admin`)
-  } else {
-    console.log("ℹ No users found — skipping admin promotion")
   }
 
   console.log("✅ Seed complete!")

@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { fleets, fleetMembers } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
+import { recomputeFleetXp } from "@/lib/combat"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -31,6 +32,8 @@ export async function POST(req: Request) {
     .onConflictDoNothing()
     .returning({ id: fleetMembers.id })
   if (joined.length === 0) return NextResponse.json({ error: "Already in this fleet" }, { status: 409 })
+
+  await recomputeFleetXp(fleet.id)
 
   return NextResponse.json({ success: true, fleet })
 }

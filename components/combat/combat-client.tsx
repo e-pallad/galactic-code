@@ -35,8 +35,18 @@ export function CombatClient({ entities, inFleet }: { entities: Entity[]; inFlee
         body: JSON.stringify({ entityId }),
       })
       const data = await res.json().catch(() => ({})) as { battleId?: string; error?: string }
-      if (!res.ok || !data.battleId) {
+      if (!res.ok) {
+        // If they already have their own active battle, take them straight to it.
+        if (res.status === 409 && data.battleId) {
+          router.push(`/combat/${data.battleId}`)
+          return
+        }
         toast({ title: "Could not engage", description: data.error ?? "Something went wrong.", variant: "destructive" })
+        setLoading(false)
+        return
+      }
+      if (!data.battleId) {
+        toast({ title: "Could not engage", description: "No battle was created.", variant: "destructive" })
         setLoading(false)
         return
       }

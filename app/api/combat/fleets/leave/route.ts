@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { fleets, fleetMembers } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
+import { recomputeFleetXp } from "@/lib/combat"
 import { eq, and, ne } from "drizzle-orm"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
@@ -27,6 +28,7 @@ export async function POST() {
     await db.delete(fleets).where(eq(fleets.id, membership.fleetId))
   } else {
     await db.delete(fleetMembers).where(eq(fleetMembers.userId, user.id))
+    await recomputeFleetXp(membership.fleetId)
   }
 
   return NextResponse.json({ success: true })

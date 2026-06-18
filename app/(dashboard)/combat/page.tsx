@@ -7,6 +7,7 @@ import { db } from "@/lib/db"
 import { entities, fleetMembers } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { CombatClient } from "@/components/combat/combat-client"
+import { ActiveBattleBanner } from "@/components/combat/active-battle-banner"
 import { Swords } from "lucide-react"
 
 export default async function CombatPage() {
@@ -27,6 +28,7 @@ export default async function CombatPage() {
           <p className="text-[#94a3b8] text-sm">Engage Void Entities to earn Credits and loot</p>
         </div>
       </div>
+      <ActiveBattleBanner />
       <CombatClient entities={allEntities} inFleet={!!membership} />
     </div>
   )
