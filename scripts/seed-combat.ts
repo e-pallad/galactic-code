@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { db } from "@/lib/db"
 import { items, entities } from "@/lib/db/schema"
 import { sql } from "drizzle-orm"
