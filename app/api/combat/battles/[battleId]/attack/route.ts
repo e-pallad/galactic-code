@@ -85,8 +85,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
 
   if (entityDefeated) {
     // Atomically claim the victory: only the request that flips the battle from
-    // active -> victory awards loot/credits/XP, so two simultaneous killing
-    // blows in a fleet battle cannot double-pay rewards.
+    // active -> victory pays out rewards, so two simultaneous killing blows in a
+    // fleet battle cannot double-pay.
     const claimed = await db
       .update(battles)
       .set({ status: "victory", endedAt: new Date() })
@@ -94,28 +94,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
       .returning({ id: battles.id })
 
     if (claimed.length > 0) {
-      const allItems = await db.select().from(items)
-      lootItems = rollLoot(entity, allItems)
-
-      for (const lootItem of lootItems) {
-        await db.insert(userInventory).values({ userId: user.id, itemId: lootItem.id }).onConflictDoNothing()
-      }
-
       creditsAwarded = entity.creditReward
       xpAwarded = entity.xpReward
-      await awardCredits(user.id, creditsAwarded)
-      await awardXP(user.id, xpAwarded)
+
+      // Reward every pilot who fought (anyone who didn't flee) — not just the
+      // one who landed the killing blow. Each gets the entity's credit/XP reward
+      // and an independent loot roll, so a co-op fleet kill pays out the roster.
+      const allItems = await db.select().from(items)
+      const roster = await db.select().from(battleParticipants).where(eq(battleParticipants.battleId, battleId))
+
+      for (const p of roster) {
+        if (p.hasFled) continue
+        const pLoot = rollLoot(entity, allItems)
+        for (const lootItem of pLoot) {
+          await db.insert(userInventory).values({ userId: p.userId, itemId: lootItem.id }).onConflictDoNothing()
+        }
+        await awardCredits(p.userId, creditsAwarded)
+        await awardXP(p.userId, xpAwarded)
+        if (p.userId === user.id) lootItems = pLoot // surface the caller's own drops for the loot reveal
+      }
+
       await db.insert(battleLog).values({
         battleId,
         actorUserId: user.id,
         damageDealt: 0,
         isCritical: false,
-        description: `Victory! ${entity.name} has been defeated! +${creditsAwarded} CR, +${xpAwarded} XP`,
+        description: `Victory! ${entity.name} has been defeated! Every surviving pilot earns +${creditsAwarded} CR, +${xpAwarded} XP`,
         turnNumber: turnNumber + 1,
       })
     }
   } else if (pilotDefeated) {
-    await db.update(battles).set({ status: "defeat", endedAt: new Date() }).where(and(eq(battles.id, battleId), eq(battles.status, "active")))
     await db.insert(battleLog).values({
       battleId,
       actorUserId: null,
@@ -124,6 +132,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
       description: `${user.name ?? "Pilot"} has been defeated by ${entity.name}!`,
       turnNumber: turnNumber + 1,
     })
+
+    // Only end the shared battle once every pilot is down or has fled — a single
+    // pilot falling must not end a co-op fleet raid for everyone still fighting.
+    const roster = await db.select().from(battleParticipants).where(eq(battleParticipants.battleId, battleId))
+    const allDown = roster.every((p) => p.hasFled || p.pilotHpRemaining <= 0)
+    if (allDown) {
+      await db.update(battles).set({ status: "defeat", endedAt: new Date() })
+        .where(and(eq(battles.id, battleId), eq(battles.status, "active")))
+    }
   }
 
   return NextResponse.json({

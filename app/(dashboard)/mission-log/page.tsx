@@ -11,19 +11,30 @@ import { ActivityHeatmap } from "@/components/dashboard/activity-heatmap"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { subDays, format } from "date-fns"
+import Link from "next/link"
 
 export const metadata = { title: "Mission Log" }
 
-export default async function MissionLogPage() {
+const PAGE_SIZE = 20
+
+export default async function MissionLogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)
   if (!user) redirect("/sign-in")
 
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
+  const offset = (page - 1) * PAGE_SIZE
+
   const ninetyDaysAgo = format(subDays(new Date(), 90), "yyyy-MM-dd")
 
-  const [userMedals, recentActivity, recentMissions] = await Promise.all([
+  const [userMedals, recentActivity, missionRows] = await Promise.all([
     db.select().from(medals).where(eq(medals.userId, user.id)).orderBy(desc(medals.unlockedAt)),
     db.select().from(dailyLogs).where(sql`user_id = ${user.id} AND date >= ${ninetyDaysAgo}`).orderBy(dailyLogs.date),
     db.select({ title: missions.title, type: missions.type, completedAt: missionProgress.completedAt, xpEarned: missionProgress.xpEarned })
@@ -31,8 +42,12 @@ export default async function MissionLogPage() {
       .innerJoin(missions, eq(missions.id, missionProgress.missionId))
       .where(sql`${missionProgress.userId} = ${user.id} AND ${missionProgress.status} = 'COMPLETED'`)
       .orderBy(desc(missionProgress.completedAt))
-      .limit(20),
+      .limit(PAGE_SIZE + 1)
+      .offset(offset),
   ])
+
+  const hasNext = missionRows.length > PAGE_SIZE
+  const recentMissions = missionRows.slice(0, PAGE_SIZE)
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -49,7 +64,9 @@ export default async function MissionLogPage() {
         <CardHeader><CardTitle>Recent Missions</CardTitle></CardHeader>
         <CardContent>
           {recentMissions.length === 0 ? (
-            <p className="text-sm text-[#94a3b8]">No completed missions yet. Begin your journey in the Academy.</p>
+            <p className="text-sm text-[#94a3b8]">
+              {page > 1 ? "No more missions on this page." : "No completed missions yet. Begin your journey in the Academy."}
+            </p>
           ) : (
             <div className="space-y-2">
               {recentMissions.map((m, i) => (
@@ -64,6 +81,22 @@ export default async function MissionLogPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {(page > 1 || hasNext) && (
+            <div className="flex items-center justify-between pt-4">
+              {page > 1 ? (
+                <Link href={`/mission-log?page=${page - 1}`} className="text-xs text-[#06B6D4] hover:underline">← Newer</Link>
+              ) : (
+                <span />
+              )}
+              <span className="text-xs text-[#94a3b8]">Page {page}</span>
+              {hasNext ? (
+                <Link href={`/mission-log?page=${page + 1}`} className="text-xs text-[#06B6D4] hover:underline">Older →</Link>
+              ) : (
+                <span />
+              )}
             </div>
           )}
         </CardContent>

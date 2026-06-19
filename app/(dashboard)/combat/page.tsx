@@ -1,5 +1,12 @@
 export const dynamic = "force-dynamic"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Combat Arena",
+  description: "Choose a Void Entity and engage in turn-based space combat to earn Credits, XP, and rare loot drops.",
+}
+
 import { getClerkId } from "@/lib/auth"
 import { getUser } from "@/lib/missions"
 import { redirect } from "next/navigation"

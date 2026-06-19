@@ -5,20 +5,32 @@ import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
-import { eq, desc, and, isNull } from "drizzle-orm"
+import { eq, desc, asc, and, isNull } from "drizzle-orm"
 import { getRankProgress } from "@/lib/xp"
 import { Trophy, Flame } from "lucide-react"
+import Link from "next/link"
 
 export const metadata = { title: "Leaderboard" }
 
-export default async function LeaderboardPage() {
+const PAGE_SIZE = 50
+
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>
+}) {
   const clerkId = await getClerkId()
   if (!clerkId) redirect("/sign-in")
 
   const user = await getUser(clerkId)
   if (!user) redirect("/sign-in")
 
-  const topPilots = await db
+  const { page: pageParam } = await searchParams
+  const page = Math.max(1, Number(pageParam) || 1)
+  const offset = (page - 1) * PAGE_SIZE
+
+  // Fetch one extra row to know whether a next page exists without a count query.
+  const rows = await db
     .select({
       id: users.id,
       name: users.name,
@@ -30,8 +42,13 @@ export default async function LeaderboardPage() {
     })
     .from(users)
     .where(and(eq(users.showOnLeaderboard, true), isNull(users.deletedAt)))
-    .orderBy(desc(users.totalXp))
-    .limit(50)
+    // Tie-break equal XP by signup order so identical scores have a stable rank.
+    .orderBy(desc(users.totalXp), asc(users.createdAt))
+    .limit(PAGE_SIZE + 1)
+    .offset(offset)
+
+  const hasNext = rows.length > PAGE_SIZE
+  const topPilots = rows.slice(0, PAGE_SIZE)
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -51,6 +68,7 @@ export default async function LeaderboardPage() {
           {topPilots.map((pilot, i) => {
             const rankData = getRankProgress(pilot.totalXp)
             const isMe = pilot.id === user.id
+            const globalRank = offset + i + 1
             return (
               <div
                 key={pilot.id}
@@ -59,9 +77,9 @@ export default async function LeaderboardPage() {
                 }`}
               >
                 <span className={`w-8 text-center font-bold font-heading text-lg ${
-                  i === 0 ? "text-yellow-400" : i === 1 ? "text-gray-300" : i === 2 ? "text-amber-600" : "text-[#94a3b8]"
+                  globalRank === 1 ? "text-yellow-400" : globalRank === 2 ? "text-gray-300" : globalRank === 3 ? "text-amber-600" : "text-[#94a3b8]"
                 }`}>
-                  {i + 1}
+                  {globalRank}
                 </span>
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#06B6D4] to-[#6366F1] flex items-center justify-center text-sm font-bold text-white">
                   {(pilot.name ?? "?")[0]?.toUpperCase()}
@@ -83,6 +101,32 @@ export default async function LeaderboardPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {(page > 1 || hasNext) && (
+        <div className="flex items-center justify-between pt-2">
+          {page > 1 ? (
+            <Link
+              href={`/leaderboard?page=${page - 1}`}
+              className="px-4 py-2 rounded-md border border-[#1e2d3d] bg-[#0d1520] text-sm text-[#e2e8f0] hover:border-[#06B6D4]/40 transition-colors"
+            >
+              ← Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-xs text-[#94a3b8]">Page {page}</span>
+          {hasNext ? (
+            <Link
+              href={`/leaderboard?page=${page + 1}`}
+              className="px-4 py-2 rounded-md border border-[#1e2d3d] bg-[#0d1520] text-sm text-[#e2e8f0] hover:border-[#06B6D4]/40 transition-colors"
+            >
+              Next →
+            </Link>
+          ) : (
+            <span />
+          )}
         </div>
       )}
     </div>

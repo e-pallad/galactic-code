@@ -1,5 +1,12 @@
 export const dynamic = "force-dynamic"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Hangar",
+  description: "View your ship's base and effective stats, manage equipped gear, and prepare for battle in the Combat Arena.",
+}
+
 import { getClerkId } from "@/lib/auth"
 import { getUser } from "@/lib/missions"
 import { getOrCreateShip, getEquippedItems, getEffectiveStats } from "@/lib/combat"

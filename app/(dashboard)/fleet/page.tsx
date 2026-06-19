@@ -1,5 +1,12 @@
 export const dynamic = "force-dynamic"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Fleet",
+  description: "Join or create a fleet to team up with other pilots and take on boss-tier Void Entities together.",
+}
+
 import { getClerkId } from "@/lib/auth"
 import { getUser } from "@/lib/missions"
 import { redirect } from "next/navigation"

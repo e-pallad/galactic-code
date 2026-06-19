@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { items, userInventory } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
-import { deductCredits } from "@/lib/combat"
+import { deductCredits, awardCredits } from "@/lib/combat"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -31,7 +31,15 @@ export async function POST(req: Request) {
   const result = await deductCredits(user.id, item.creditCost)
   if (!result) return NextResponse.json({ error: "Insufficient credits" }, { status: 402 })
 
-  await db.insert(userInventory).values({ userId: user.id, itemId: item.id })
+  // neon-http has no interactive transactions, so if the inventory insert fails
+  // after the atomic deduction we compensate by refunding the credits rather than
+  // silently charging the pilot for nothing.
+  try {
+    await db.insert(userInventory).values({ userId: user.id, itemId: item.id })
+  } catch {
+    await awardCredits(user.id, item.creditCost)
+    return NextResponse.json({ error: "Purchase failed — your credits were refunded" }, { status: 500 })
+  }
 
   return NextResponse.json({ success: true, newBalance: result.newBalance })
 }
