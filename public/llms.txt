@@ -1,0 +1,55 @@
+# Galactic Code
+
+> A space-themed RPG learning platform where programmers complete coding missions to earn XP, Credits, and gear — then battle Void Entities in the Combat Arena.
+
+Galactic Code is a gamified programming education platform. Learning content is organized into **Star Systems** (months) broken into **Sectors** (weekly themes), each containing individual **Missions** (exercises). Completing missions earns XP (to rank up your pilot) and Credits (the in-game currency).
+
+## The Learning → Combat Loop
+
+1. Complete coding **Missions** in the Academy → earn XP and Credits
+2. Spend Credits in the **Armory** on weapons, shields, and engines for your ship
+3. Visit the **Hangar** to equip gear and view your effective combat stats
+4. Enter the **Combat Arena** to fight Void Entities in turn-based battles
+5. Win battles to earn bonus Credits, XP, and rare loot drops
+6. Join a **Fleet** (guild) to tackle boss-tier entities cooperatively
+
+## Key Public Pages
+
+- [Home](/) — Platform overview and feature explanation
+- [Sign Up](/sign-up) — Create a free account
+- [Sign In](/sign-in) — Returning pilot login
+- [Demo](/demo) — Try the full experience without an account
+
+## Features
+
+- **Missions** — Structured coding exercises across JavaScript, TypeScript, and more
+- **XP & Ranks** — 10 pilot ranks unlocked by accumulating XP
+- **Credits** — Earned from mission completion, spent in the Armory on gear
+- **Ship Hangar** — View base stats, equip/unequip weapons, shields, and engines
+- **Armory Shop** — 18 gear items across 5 rarity tiers (Common → Legendary)
+- **Combat Arena** — Turn-based battles against 10 Void Entity types
+- **Fleets** — Guild system for cooperative boss battles
+- **Skill Checks** — Quiz system awarding 20–35 XP per pass
+- **Focus Cycles** — Pomodoro-style timer with XP bonus on completion
+- **Star Map** — Visual progress map of your learning journey
+- **Leaderboard** — Global pilot ranking by XP
+
+## Technology Stack
+
+- **Framework**: Next.js 15 (App Router, TypeScript strict)
+- **Database**: PostgreSQL via Neon (Drizzle ORM)
+- **Auth**: Clerk
+- **Styling**: Tailwind CSS v4 + shadcn/ui
+- **Hosting**: Vercel
+
+## XP Reference
+
+| Action | XP |
+|---|---|
+| Complete mission | 15 (20 with Focus Cycle) |
+| Skip mission | 2 |
+| Daily login | 5 |
+| Skill check pass | 20 (35 if perfect) |
+| Complete operation | 100 |
+| 7-day streak bonus | +10 |
+| 30-day streak bonus | +25 |

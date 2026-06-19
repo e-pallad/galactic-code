@@ -1,5 +1,12 @@
 export const dynamic = "force-dynamic"
 
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Armory",
+  description: "Spend your Credits on weapons, shields, and engines to upgrade your ship's combat stats.",
+}
+
 import { getClerkId } from "@/lib/auth"
 import { getUser } from "@/lib/missions"
 import { redirect } from "next/navigation"
