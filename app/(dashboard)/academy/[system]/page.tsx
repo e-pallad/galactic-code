@@ -50,6 +50,21 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
     return acc
   }, {})
 
+  // For each sector, walk missions in number order: a mission is locked if the
+  // immediately preceding mission in the sector is neither COMPLETED nor SKIPPED.
+  const lockedMissions = new Set<string>()
+  for (const sector of systemSectors) {
+    const sectorMissions = systemMissions
+      .filter(m => m.sectorId === sector.id)
+      .sort((a, b) => a.number - b.number)
+    for (let i = 1; i < sectorMissions.length; i++) {
+      const prevStatus = progressMap[sectorMissions[i - 1]!.id] ?? "NOT_STARTED"
+      if (prevStatus !== "COMPLETED" && prevStatus !== "SKIPPED") {
+        lockedMissions.add(sectorMissions[i]!.id)
+      }
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
@@ -81,6 +96,7 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
                       mission={mission}
                       status={(progressMap[mission.id] ?? "NOT_STARTED") as "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED"}
                       questions={questionsByMission[mission.id] ?? []}
+                      isLocked={lockedMissions.has(mission.id)}
                     />
                   ))}
                 </div>

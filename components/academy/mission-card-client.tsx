@@ -20,9 +20,10 @@ interface MissionCardClientProps {
   mission: Mission
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED"
   questions: Question[]
+  isLocked?: boolean
 }
 
-export function MissionCardClient({ mission, status, questions }: MissionCardClientProps) {
+export function MissionCardClient({ mission, status, questions, isLocked = false }: MissionCardClientProps) {
   const router = useRouter()
   const [currentStatus, setCurrentStatus] = useState(status)
   const [showSkillCheck, setShowSkillCheck] = useState(false)
@@ -84,6 +85,7 @@ export function MissionCardClient({ mission, status, questions }: MissionCardCli
         status={currentStatus}
         onComplete={handleComplete}
         onSkip={handleSkip}
+        isLocked={isLocked}
       />
       {showSkillCheck && questions.length > 0 && (
         <SkillCheckModal

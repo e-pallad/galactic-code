@@ -5,7 +5,7 @@ import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES } from "@/lib/xp"
 import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
-import { eq, sql, and } from "drizzle-orm"
+import { eq, sql, and, lt, inArray } from "drizzle-orm"
 import { z } from "zod"
 import { startOfDay } from "date-fns"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -34,6 +34,24 @@ export async function POST(req: Request) {
 
   const [mission] = await db.select().from(missions).where(eq(missions.id, missionId)).limit(1)
   if (!mission) return NextResponse.json({ error: "Mission not found" }, { status: 404 })
+
+  // Enforce sequential order within a sector: all missions with a lower number in the
+  // same sector must be COMPLETED or SKIPPED before this one can be acted on.
+  const priorInSector = await db
+    .select({ id: missions.id })
+    .from(missions)
+    .where(and(eq(missions.sectorId, mission.sectorId), lt(missions.number, mission.number)))
+  if (priorInSector.length > 0) {
+    const priorIds = priorInSector.map((m) => m.id)
+    const done = await db
+      .select({ status: missionProgress.status })
+      .from(missionProgress)
+      .where(and(eq(missionProgress.userId, user.id), inArray(missionProgress.missionId, priorIds)))
+    const allDone =
+      done.length === priorIds.length &&
+      done.every((p) => p.status === "COMPLETED" || p.status === "SKIPPED")
+    if (!allDone) return NextResponse.json({ error: "Complete previous missions first" }, { status: 422 })
+  }
 
   // Check existing progress to prevent re-awarding XP on already-completed missions
   const [existing] = await db

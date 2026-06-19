@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, CheckCircle, SkipForward, ChevronDown, ChevronUp } from "lucide-react"
+import { Clock, CheckCircle, SkipForward, ChevronDown, ChevronUp, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Mission } from "@/lib/db/schema"
 
@@ -26,9 +26,10 @@ interface MissionCardProps {
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED"
   onComplete: (missionId: string, usedFocusCycle: boolean) => Promise<void>
   onSkip: (missionId: string) => Promise<void>
+  isLocked?: boolean
 }
 
-export function MissionCard({ mission, status, onComplete, onSkip }: MissionCardProps) {
+export function MissionCard({ mission, status, onComplete, onSkip, isLocked = false }: MissionCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [loading, setLoading] = useState(false)
 
@@ -46,6 +47,26 @@ export function MissionCard({ mission, status, onComplete, onSkip }: MissionCard
 
   const isCompleted = status === "COMPLETED"
   const isSkipped = status === "SKIPPED"
+
+  if (isLocked) {
+    return (
+      <div className={cn(
+        "rounded-lg border border-[#1e2d3d] bg-[#080C14] border-l-4 overflow-hidden opacity-50 select-none",
+        borderColor
+      )}>
+        <div className="p-4 flex items-center gap-3">
+          <Lock className="h-4 w-4 text-[#94a3b8] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Badge variant={typeVariant} className="capitalize">{mission.type.replace("-", " ")}</Badge>
+            </div>
+            <h4 className="font-medium text-[#94a3b8] text-sm">{mission.title}</h4>
+          </div>
+          <span className="text-xs text-[#94a3b8] shrink-0">Complete previous mission to unlock</span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={cn(
