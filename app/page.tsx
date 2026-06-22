@@ -2,7 +2,9 @@ export const dynamic = "force-dynamic"
 
 import type { Metadata } from "next"
 import { Hero } from "@/components/landing/hero"
+import { HowItWorks } from "@/components/landing/how-it-works"
 import { Features } from "@/components/landing/features"
+import { CallToAction } from "@/components/landing/cta"
 import { StarField } from "@/components/layout/star-field"
 import Link from "next/link"
 import { Zap } from "lucide-react"
@@ -72,24 +74,37 @@ export default function LandingPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <StarField />
-      <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-[#1e2d3d]/50">
-        <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-[#1e2d3d]/50 bg-[#080C14]/80 backdrop-blur-md">
+        <Link href="/" className="flex items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]" aria-label="Galactic Code — home">
           <Zap className="h-5 w-5 text-[#06B6D4]" />
           <span className="font-heading font-bold text-[#06B6D4] tracking-wide">GALACTIC CODE</span>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <Link href="/sign-in" className="text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">Sign In</Link>
+        </Link>
+        <div className="flex items-center gap-2 sm:gap-4 text-sm">
+          <Link href="/sign-in" className="hidden sm:inline-block text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">Sign In</Link>
           <Link href="/demo" className="text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">Try Demo</Link>
-          <Link href="/sign-up" className="px-3 py-1.5 rounded-md bg-[#06B6D4] text-[#080C14] font-medium hover:bg-[#06B6D4]/90 transition-colors">
+          <Link href="/sign-up" className="px-3 py-1.5 rounded-md bg-[#06B6D4] text-[#080C14] font-semibold hover:bg-[#06B6D4]/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080C14]">
             Get Started
           </Link>
         </div>
       </header>
       <main className="relative z-10">
         <Hero />
+        <HowItWorks />
         <Features />
-        <footer className="py-12 px-6 text-center border-t border-[#1e2d3d] text-sm text-[#94a3b8]">
-          <p>© {new Date().getFullYear()} Galactic Code. All rights reserved.</p>
+        <CallToAction />
+        <footer className="py-10 px-6 border-t border-[#1e2d3d] text-sm text-[#94a3b8]">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-[#06B6D4]" />
+              <span className="font-heading font-semibold text-[#e2e8f0]">Galactic Code</span>
+            </div>
+            <nav className="flex items-center gap-5" aria-label="Footer">
+              <Link href="/sign-in" className="hover:text-[#e2e8f0] transition-colors">Sign In</Link>
+              <Link href="/sign-up" className="hover:text-[#e2e8f0] transition-colors">Sign Up</Link>
+              <Link href="/demo" className="hover:text-[#e2e8f0] transition-colors">Demo</Link>
+            </nav>
+            <p>© {new Date().getFullYear()} Galactic Code. All rights reserved.</p>
+          </div>
         </footer>
       </main>
     </div>
