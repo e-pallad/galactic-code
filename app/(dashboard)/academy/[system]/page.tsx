@@ -9,8 +9,9 @@ import { eq, sql, asc } from "drizzle-orm"
 import { MissionCardClient } from "@/components/academy/mission-card-client"
 import { FocusCycleTimer } from "@/components/academy/focus-cycle-timer"
 import { FocusSounds } from "@/components/academy/focus-sounds"
-import { ArrowLeft, Rocket } from "lucide-react"
-import Link from "next/link"
+import { BackLink } from "@/components/layout/back-link"
+import { Progress } from "@/components/ui/progress"
+import { Rocket } from "lucide-react"
 
 export default async function SystemPage({ params }: { params: Promise<{ system: string }> }) {
   const { system: systemId } = await params
@@ -65,19 +66,31 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
     }
   }
 
+  const completedCount = systemMissions.filter(
+    m => progressMap[m.id] === "COMPLETED"
+  ).length
+  const systemProgress = systemMissions.length > 0
+    ? Math.round((completedCount / systemMissions.length) * 100)
+    : 0
+
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Link href="/academy" className="text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <p className="text-xs text-[#06B6D4] uppercase tracking-wide font-medium">System {system.number}</p>
-          <h1 className="font-heading text-xl font-bold text-[#e2e8f0]">{system.title}</h1>
-        </div>
+      <BackLink href="/academy" label="Academy" />
+      <div>
+        <p className="text-xs text-[#06B6D4] uppercase tracking-wide font-medium">System {system.number}</p>
+        <h1 className="font-heading text-xl font-bold text-[#e2e8f0]">{system.title}</h1>
+        <p className="text-[#94a3b8] text-sm mt-2">{system.description}</p>
       </div>
 
-      <p className="text-[#94a3b8] text-sm">{system.description}</p>
+      {systemMissions.length > 0 && (
+        <div className="p-4 rounded-lg border border-[#1e2d3d] bg-[#0d1520]">
+          <div className="flex items-center justify-between text-xs text-[#94a3b8] mb-1.5">
+            <span>{completedCount} / {systemMissions.length} missions complete</span>
+            <span className="text-[#06B6D4] font-medium">{systemProgress}%</span>
+          </div>
+          <Progress value={systemProgress} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
