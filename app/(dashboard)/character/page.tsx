@@ -10,6 +10,7 @@ import { PilotSheet } from "@/components/character/pilot-sheet"
 import { MedalGrid } from "@/components/character/medal-grid"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShareRankButton } from "@/components/gamification/share-rank-button"
+import { ReferralWidget } from "@/components/gamification/referral-widget"
 import { getRankProgress } from "@/lib/xp"
 
 export const metadata = { title: "Character" }
@@ -32,6 +33,7 @@ export default async function CharacterPage() {
           rank={user.rank}
           rankLabel={rankInfo.label}
           totalXp={user.totalXp}
+          name={user.name}
           appUrl={process.env.NEXT_PUBLIC_APP_URL}
         />
       </div>
@@ -44,6 +46,7 @@ export default async function CharacterPage() {
           <MedalGrid earnedMedals={userMedals} showAll={true} />
         </CardContent>
       </Card>
+      <ReferralWidget />
     </div>
   )
 }
