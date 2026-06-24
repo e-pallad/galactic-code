@@ -3,6 +3,7 @@ import { MobileNav } from "@/components/layout/mobile-nav"
 import { TopBar } from "@/components/layout/top-bar"
 import { StarField } from "@/components/layout/star-field"
 import { DemoBanner } from "@/components/demo/demo-banner"
+import { ReferralClaim } from "@/components/gamification/referral-claim"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,6 +18,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
       <MobileNav />
+      <ReferralClaim />
     </div>
   )
 }
