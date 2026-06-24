@@ -61,8 +61,8 @@ export function MissionCard({ mission, status, onComplete, onSkip, isLocked = fa
               <Badge variant={typeVariant} className="capitalize">{mission.type.replace("-", " ")}</Badge>
             </div>
             <h4 className="font-medium text-[#94a3b8] text-sm">{mission.title}</h4>
+            <p className="text-xs text-[#94a3b8] mt-0.5">Complete the previous mission to unlock</p>
           </div>
-          <span className="text-xs text-[#94a3b8] shrink-0">Complete previous mission to unlock</span>
         </div>
       </div>
     )
@@ -88,7 +88,12 @@ export function MissionCard({ mission, status, onComplete, onSkip, isLocked = fa
             </div>
             <h4 className="font-medium text-[#e2e8f0] text-sm">{mission.title}</h4>
           </div>
-          <button onClick={() => setExpanded(!expanded)} className="text-[#94a3b8] hover:text-[#e2e8f0] mt-1">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            aria-expanded={expanded}
+            aria-label={`${expanded ? "Collapse" : "Expand"} mission: ${mission.title}`}
+            className="text-[#94a3b8] hover:text-[#e2e8f0] mt-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]"
+          >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>

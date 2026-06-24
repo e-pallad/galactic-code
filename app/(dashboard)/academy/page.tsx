@@ -7,6 +7,7 @@ import { db } from "@/lib/db"
 import { starSystems, missions, missionProgress, operations } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { StarSystemCard } from "@/components/academy/star-system-card"
+import { Progress } from "@/components/ui/progress"
 
 export const metadata = { title: "Academy" }
 
@@ -45,12 +46,39 @@ export default async function AcademyPage() {
     completedBySystem[m.systemId] = (completedBySystem[m.systemId] ?? 0) + 1
   })
 
+  // Curriculum-wide totals for the progress summary.
+  const totalAllMissions = systems.reduce((sum, s) => sum + (countBySystem[s.id] ?? 0), 0)
+  const completedAllMissions = systems.reduce((sum, s) => sum + (completedBySystem[s.id] ?? 0), 0)
+  const overallProgress = totalAllMissions > 0 ? Math.round((completedAllMissions / totalAllMissions) * 100) : 0
+
+  // Index of the first unlocked system that isn't fully complete — the "continue here" target.
+  const currentSystemIndex = systems.findIndex((s, i) => {
+    const total = countBySystem[s.id] ?? 0
+    const completed = completedBySystem[s.id] ?? 0
+    const prevSystem = systems[i - 1]
+    const unlocked = i === 0 || (completedBySystem[prevSystem?.id ?? ""] ?? 0) === (countBySystem[prevSystem?.id ?? ""] ?? 1)
+    return unlocked && (total === 0 || completed < total)
+  })
+
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Academy</h1>
         <p className="text-[#94a3b8] text-sm mt-1">Your {user.track} learning path</p>
       </div>
+
+      {systems.length > 0 && (
+        <div className="p-5 rounded-xl border border-[#1e2d3d] bg-[#0d1520]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-[#e2e8f0]">Curriculum progress</span>
+            <span className="text-sm text-[#06B6D4] font-medium">{overallProgress}%</span>
+          </div>
+          <Progress value={overallProgress} />
+          <p className="text-xs text-[#94a3b8] mt-2">
+            {completedAllMissions} of {totalAllMissions} missions complete across {systems.length} {systems.length === 1 ? "system" : "systems"}
+          </p>
+        </div>
+      )}
 
       {systems.length === 0 ? (
         <div className="text-center py-16 text-[#94a3b8]">
@@ -76,6 +104,8 @@ export default async function AcademyPage() {
                 completedMissions={completed}
                 operationStatus={op?.status}
                 isLocked={i > 0 && !prevCompleted}
+                isCurrent={i === currentSystemIndex}
+                unlockAfterSystem={prevSystem?.number}
               />
             )
           })}

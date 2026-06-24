@@ -44,7 +44,7 @@ export default async function StarMapPage() {
       ) : (
         <div className="grid gap-4">
           {maps.map(map => (
-            <Link key={map.slug} href={`/star-map/${map.slug}`}>
+            <Link key={map.slug} href={`/star-map/${map.slug}`} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]">
               <Card className="hover:border-[#06B6D4]/40 transition-all cursor-pointer">
                 <CardContent className="p-5 flex items-center justify-between">
                   <div>

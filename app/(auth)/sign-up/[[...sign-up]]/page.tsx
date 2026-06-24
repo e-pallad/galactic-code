@@ -1,15 +1,12 @@
 export const dynamic = "force-dynamic"
 
 import { SignUp } from "@clerk/nextjs"
-import { StarField } from "@/components/layout/star-field"
+import { AuthShell, clerkAppearance } from "@/components/landing/auth-shell"
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-[#080C14] flex items-center justify-center relative">
-      <StarField />
-      <div className="relative z-10">
-        <SignUp />
-      </div>
-    </div>
+    <AuthShell title="Begin your journey" subtitle="Create your free account, launch your first mission, and start earning XP in under a minute.">
+      <SignUp appearance={clerkAppearance} />
+    </AuthShell>
   )
 }

@@ -81,13 +81,20 @@ export function StarMapClient({ mapData, completedNodes: initial }: StarMapClien
         return (
           <div key={topic.id} className="rounded-xl border border-[#1e2d3d] bg-[#0d1520] overflow-hidden">
             <div className="flex items-center gap-3 p-4">
-              <button onClick={() => toggleExpand(topic.id)} className="text-[#94a3b8] hover:text-[#e2e8f0]">
+              <button
+                onClick={() => toggleExpand(topic.id)}
+                aria-expanded={isExpanded}
+                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${topic.label}`}
+                className="text-[#94a3b8] hover:text-[#e2e8f0] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]"
+              >
                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => toggle(topic)}
                 disabled={toggling === topic.id}
-                className={cn("transition-colors", topicCompleted ? "text-green-400" : "text-[#1e2d3d] hover:text-[#06B6D4]")}
+                aria-pressed={topicCompleted}
+                aria-label={`Mark "${topic.label}" ${topicCompleted ? "incomplete" : "complete"}`}
+                className={cn("transition-colors rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]", topicCompleted ? "text-green-400" : "text-[#475569] hover:text-[#06B6D4]")}
               >
                 {topicCompleted ? <CheckCircle className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
               </button>
@@ -110,7 +117,9 @@ export function StarMapClient({ mapData, completedNodes: initial }: StarMapClien
                       <button
                         onClick={() => toggle(subtopic)}
                         disabled={toggling === subtopic.id}
-                        className={cn("transition-colors", subCompleted ? "text-green-400" : "text-[#1e2d3d] hover:text-[#06B6D4]")}
+                        aria-pressed={subCompleted}
+                        aria-label={`Mark "${subtopic.label}" ${subCompleted ? "incomplete" : "complete"}`}
+                        className={cn("transition-colors rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#06B6D4]", subCompleted ? "text-green-400" : "text-[#475569] hover:text-[#06B6D4]")}
                       >
                         {subCompleted ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                       </button>

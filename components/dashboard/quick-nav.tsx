@@ -8,6 +8,18 @@ interface QuickNavProps {
 }
 
 export function QuickNav({ lastMission, currentSystem }: QuickNavProps) {
+  if (!currentSystem && !lastMission) {
+    return (
+      <Link href="/academy">
+        <Button className="flex items-center gap-2 w-full sm:w-auto">
+          <BookOpen className="h-4 w-4" />
+          Start your first mission
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+      </Link>
+    )
+  }
+
   return (
     <div className="flex flex-col sm:flex-row gap-3">
       {currentSystem && (

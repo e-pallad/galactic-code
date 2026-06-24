@@ -7,8 +7,7 @@ import { db } from "@/lib/db"
 import { starMapProgress } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
 import { StarMapClient } from "@/components/star-map/star-map-client"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { BackLink } from "@/components/layout/back-link"
 
 interface MapNode {
   id: string
@@ -53,14 +52,10 @@ export default async function StarMapSlugPage({ params }: { params: Promise<{ sl
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Link href="/star-map" className="text-[#94a3b8] hover:text-[#e2e8f0]">
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">{mapData.title}</h1>
-          <p className="text-sm text-[#94a3b8]">{mapData.description}</p>
-        </div>
+      <BackLink href="/star-map" label="Star Map" />
+      <div>
+        <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">{mapData.title}</h1>
+        <p className="text-sm text-[#94a3b8] mt-1">{mapData.description}</p>
       </div>
       <StarMapClient mapData={mapData} completedNodes={completedNodes} />
     </div>
