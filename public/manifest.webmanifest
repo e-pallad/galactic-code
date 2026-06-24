@@ -1,0 +1,26 @@
+{
+  "name": "Galactic Code",
+  "short_name": "GalacticCode",
+  "description": "Master programming through epic space missions, earn XP, rank up, and explore the universe of code.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080C14",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en"
+}
