@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import {
   SandpackProvider,
   SandpackLayout,
@@ -8,7 +8,7 @@ import {
   SandpackTests,
 } from "@codesandbox/sandpack-react"
 import { Button } from "@/components/ui/button"
-import { Lightbulb, Eye, EyeOff } from "lucide-react"
+import { Lightbulb, Eye, EyeOff, CheckCircle2 } from "lucide-react"
 
 export interface ExerciseData {
   id: string
@@ -78,8 +78,42 @@ function HintsAndSolution({ hints, solution }: { hints: string[]; solution: stri
   )
 }
 
+// Shape of Sandpack's test-run report (not exported by the package).
+interface SpecNode {
+  tests?: Record<string, { status: string }>
+  describes?: Record<string, SpecNode>
+}
+
+function collectTestStatuses(node: SpecNode): string[] {
+  const own = Object.values(node.tests ?? {}).map((t) => t.status)
+  const nested = Object.values(node.describes ?? {}).flatMap(collectTestStatuses)
+  return [...own, ...nested]
+}
+
 export function ExerciseRunner({ exercise }: { exercise: ExerciseData }) {
   const runnable = isBrowserRunnable(exercise.starterCode) && exercise.tests.length > 0
+  const [award, setAward] = useState<{ xpEarned: number; alreadyCompleted: boolean } | null>(null)
+  const submittedRef = useRef(false)
+
+  const handleTestsComplete = (specs: Record<string, SpecNode>) => {
+    if (submittedRef.current) return
+    const statuses = Object.values(specs).flatMap(collectTestStatuses)
+    if (statuses.length === 0 || !statuses.every((s) => s === "pass")) return
+    submittedRef.current = true
+    fetch("/api/progress/exercise", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exerciseId: exercise.id }),
+    })
+      .then((res) => (res.ok ? (res.json() as Promise<{ xpEarned: number; alreadyCompleted: boolean }>) : null))
+      .then((data) => {
+        if (data) setAward(data)
+        else submittedRef.current = false
+      })
+      .catch(() => {
+        submittedRef.current = false
+      })
+  }
 
   if (!runnable) {
     return (
@@ -121,9 +155,17 @@ export function ExerciseRunner({ exercise }: { exercise: ExerciseData }) {
       >
         <SandpackLayout>
           <SandpackCodeEditor showLineNumbers showTabs style={{ minHeight: 320 }} />
-          <SandpackTests style={{ minHeight: 320 }} />
+          <SandpackTests style={{ minHeight: 320 }} onComplete={handleTestsComplete} />
         </SandpackLayout>
       </SandpackProvider>
+      {award && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-[#10b981]/10 border border-[#10b981]/30 text-sm text-[#e2e8f0]">
+          <CheckCircle2 className="h-4 w-4 text-[#10b981] shrink-0" />
+          {award.xpEarned > 0
+            ? `All simulations passed — +${award.xpEarned} XP logged.`
+            : "All simulations passed. Exercise already completed — no additional XP."}
+        </div>
+      )}
       <HintsAndSolution hints={exercise.hints} solution={exercise.solution} />
     </div>
   )

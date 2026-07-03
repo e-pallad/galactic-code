@@ -47,6 +47,7 @@ npm test
 - Skip mission: 2
 - Daily login: 5
 - Skill check pass: 20 (35 if perfect, 5 if < 70%)
+- Sim Deck exercise pass: 10 (once per exercise)
 - Complete operation: 100
 - Streak bonus 7d: +10, 30d: +25
 

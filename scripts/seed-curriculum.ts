@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { and, eq } from "drizzle-orm"
+import { and, eq, gte, sql } from "drizzle-orm"
 import {
   tracks,
   starSystems,
@@ -13,9 +13,10 @@ import {
 import { reactSystems, nodeSystems, nextSystems, type SystemDef } from "./curriculum-data"
 
 // Re-runnable: existing systems/sectors/missions are looked up instead of
-// skipped, and exercises are deleted + re-inserted so content updates reach
-// already-seeded databases. Skill checks are only inserted for new missions
-// (the table has no unique constraint, so re-inserting would duplicate them).
+// skipped. Skill checks and exercises upsert on (mission_id, display_order)
+// so content edits reach already-seeded databases — upserting (not
+// delete+reinsert) preserves exercise ids that exercise_progress points at.
+// Rows past the current count are pruned.
 async function seedSystem(trackId: string, sys: SystemDef) {
   let [system] = await db
     .insert(starSystems)
@@ -57,7 +58,6 @@ async function seedSystem(trackId: string, sys: SystemDef) {
     if (!sector) continue
 
     for (const m of sec.missions) {
-      let missionIsNew = true
       let [mission] = await db
         .insert(missions)
         .values({
@@ -75,7 +75,6 @@ async function seedSystem(trackId: string, sys: SystemDef) {
         .returning()
 
       if (!mission) {
-        missionIsNew = false
         ;[mission] = await db
           .select()
           .from(missions)
@@ -84,7 +83,7 @@ async function seedSystem(trackId: string, sys: SystemDef) {
       }
       if (!mission) continue
 
-      if (m.skillChecks && missionIsNew) {
+      if (m.skillChecks) {
         await db
           .insert(skillCheckQuestions)
           .values(
@@ -97,12 +96,21 @@ async function seedSystem(trackId: string, sys: SystemDef) {
               displayOrder: i,
             }))
           )
-          .onConflictDoNothing()
+          .onConflictDoUpdate({
+            target: [skillCheckQuestions.missionId, skillCheckQuestions.displayOrder],
+            set: {
+              question: sql`excluded.question`,
+              options: sql`excluded.options`,
+              correctIndex: sql`excluded.correct_index`,
+              explanation: sql`excluded.explanation`,
+            },
+          })
+        await db
+          .delete(skillCheckQuestions)
+          .where(and(eq(skillCheckQuestions.missionId, mission.id), gte(skillCheckQuestions.displayOrder, m.skillChecks.length)))
       }
 
       if (m.exercises) {
-        // Refresh exercises in place — delete cascades to exercise_tests.
-        await db.delete(exercises).where(eq(exercises.missionId, mission.id))
         for (let ei = 0; ei < m.exercises.length; ei++) {
           const ex = m.exercises[ei]
           const [exercise] = await db
@@ -116,11 +124,22 @@ async function seedSystem(trackId: string, sys: SystemDef) {
               hints: ex.hints,
               displayOrder: ei,
             })
-            .onConflictDoNothing()
+            .onConflictDoUpdate({
+              target: [exercises.missionId, exercises.displayOrder],
+              set: {
+                title: sql`excluded.title`,
+                description: sql`excluded.description`,
+                starterCode: sql`excluded.starter_code`,
+                solution: sql`excluded.solution`,
+                hints: sql`excluded.hints`,
+              },
+            })
             .returning()
 
           if (!exercise) continue
 
+          // Tests carry no user data — safe to refresh wholesale.
+          await db.delete(exerciseTests).where(eq(exerciseTests.exerciseId, exercise.id))
           if (ex.tests.length > 0) {
             await db
               .insert(exerciseTests)
@@ -132,9 +151,12 @@ async function seedSystem(trackId: string, sys: SystemDef) {
                   displayOrder: ti,
                 }))
               )
-              .onConflictDoNothing()
           }
         }
+        // Prune exercises removed from the curriculum (cascades tests + progress).
+        await db
+          .delete(exercises)
+          .where(and(eq(exercises.missionId, mission.id), gte(exercises.displayOrder, m.exercises.length)))
       }
     }
   }
