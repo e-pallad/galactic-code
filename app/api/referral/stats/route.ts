@@ -28,7 +28,7 @@ export async function GET() {
     user = updated
   }
 
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
   return NextResponse.json({
     referralCode: user.referralCode,
     referralCount: user.referralCount,

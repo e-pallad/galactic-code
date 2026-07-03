@@ -19,7 +19,7 @@ type Props = {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const p = await searchParams
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
 
   const ogUrl = new URL(`${APP_URL}/api/og`)
   Object.entries(p).forEach(([k, v]) => { if (v) ogUrl.searchParams.set(k, v) })
@@ -58,7 +58,7 @@ export default async function SharePage({ searchParams }: Props) {
   const p = await searchParams
   if (!p.type) redirect("/")
 
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
   const isRank = p.type !== "medal"
 
   return (

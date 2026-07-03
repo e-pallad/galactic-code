@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
             display: "flex",
           }}
         >
-          galacticcode.dev
+          galacticcode.app
         </div>
       </div>
     ),

@@ -7,7 +7,7 @@ import { getTrack, getSystemsWithMissionCounts, systemSlug } from "@/lib/curricu
 import { StarField } from "@/components/layout/star-field"
 import { Button } from "@/components/ui/button"
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
 
 export async function generateMetadata({ params }: { params: Promise<{ track: string }> }) {
   const { track: trackId } = await params

@@ -34,7 +34,7 @@ export function MissionCardClient({ mission, status, questions, exercises = [], 
   const [showSkillCheck, setShowSkillCheck] = useState(false)
   const [pendingSkillCheck, setPendingSkillCheck] = useState(false)
   const [celebration, setCelebration] = useState<{ type: "levelUp" | "medal"; title: string; description: string; icon?: string; shareUrl?: string } | null>(null)
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
 
   const handleComplete = async (missionId: string, usedFocusCycle: boolean) => {
     const res = await fetch("/api/progress/mission", {

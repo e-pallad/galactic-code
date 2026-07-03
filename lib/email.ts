@@ -10,8 +10,8 @@ function resendClient(): Resend {
   return _resend
 }
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? "Galactic Code <noreply@galacticcode.dev>"
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+const FROM = process.env.RESEND_FROM_EMAIL ?? "Galactic Code <noreply@galacticcode.app>"
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
 
 // Signed per-user unsubscribe links (RFC 8058 one-click). HMAC keyed with
 // CRON_SECRET so the URL can't be guessed to opt out arbitrary users.

@@ -17,7 +17,7 @@ export function ShareRankButton({
   rankLabel,
   totalXp,
   name,
-  appUrl = "https://galacticcode.dev",
+  appUrl = "https://galacticcode.app",
 }: ShareRankButtonProps) {
   const [copied, setCopied] = useState(false)
 

@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params
-  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+  const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.app"
   const response = NextResponse.redirect(`${APP_URL}/sign-up`)
   response.cookies.set("gc_ref", code.toUpperCase(), {
     path: "/",
