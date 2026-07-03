@@ -33,7 +33,16 @@ export function SettingsForm({ user, tracks }: SettingsFormProps) {
       await fetch("/api/user/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, track, showOnLeaderboard, emailOptOut, dailyGoalMissions: dailyGoal, weeklyGoalMissions: weeklyGoal }),
+        body: JSON.stringify({
+          name,
+          track,
+          // Auto-sync so streak day boundaries follow the user's current zone.
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          showOnLeaderboard,
+          emailOptOut,
+          dailyGoalMissions: dailyGoal,
+          weeklyGoalMissions: weeklyGoal,
+        }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)

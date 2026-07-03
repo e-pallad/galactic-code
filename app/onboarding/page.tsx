@@ -32,7 +32,11 @@ export default function OnboardingPage() {
       await fetch("/api/user/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ track: selectedTrack, dailyGoalMissions: dailyGoal }),
+        body: JSON.stringify({
+          track: selectedTrack,
+          dailyGoalMissions: dailyGoal,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        }),
       })
       analytics.onboardingComplete({ track: selectedTrack, daily_goal: dailyGoal })
       router.push("/dashboard")

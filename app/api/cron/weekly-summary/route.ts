@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       if (xpThisWeek === 0 && missionsThisWeek === 0) continue
 
       const rankInfo = getRankProgress(user.totalXp)
-      await sendWeeklySummaryEmail(user.email, user.name, {
+      await sendWeeklySummaryEmail(user.id, user.email, user.name, {
         xpThisWeek,
         missionsThisWeek,
         totalXp: user.totalXp,
