@@ -63,10 +63,6 @@ export const users = pgTable("users", {
   referredBy: uuid("referred_by"),
   referralCount: integer("referral_count").default(0).notNull(),
   credits: integer("credits").default(0).notNull(),
-  plan: text("plan", { enum: ["free", "pro"] }).default("free").notNull(),
-  stripeCustomerId: text("stripe_customer_id"),
-  subscriptionStatus: text("subscription_status", { enum: ["active", "canceled", "past_due"] }),
-  subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 })

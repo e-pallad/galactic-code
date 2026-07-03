@@ -4,7 +4,7 @@ import { redirect, notFound } from "next/navigation"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { starSystems, sectors, missions, missionProgress, skillCheckQuestions } from "@/lib/db/schema"
+import { starSystems, sectors, missions, missionProgress, skillCheckQuestions, exercises, exerciseTests } from "@/lib/db/schema"
 import { eq, sql, asc } from "drizzle-orm"
 import { MissionCardClient } from "@/components/academy/mission-card-client"
 import { FocusCycleTimer } from "@/components/academy/focus-cycle-timer"
@@ -43,6 +43,40 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
         .where(sql`mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
         .orderBy(asc(skillCheckQuestions.displayOrder))
     : ([] as (typeof skillCheckQuestions.$inferSelect)[])
+
+  const missionExercises = missionIds.length > 0
+    ? await db.select().from(exercises)
+        .where(sql`mission_id = ANY(ARRAY[${sql.join(missionIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
+        .orderBy(asc(exercises.displayOrder))
+    : ([] as (typeof exercises.$inferSelect)[])
+
+  const exerciseIds = missionExercises.map(e => e.id)
+  const allTests = exerciseIds.length > 0
+    ? await db.select().from(exerciseTests)
+        .where(sql`exercise_id = ANY(ARRAY[${sql.join(exerciseIds.map(id => sql`${id}::uuid`), sql`, `)}])`)
+        .orderBy(asc(exerciseTests.displayOrder))
+    : ([] as (typeof exerciseTests.$inferSelect)[])
+
+  const testsByExercise = allTests.reduce<Record<string, { description: string; code: string }[]>>((acc, t) => {
+    ;(acc[t.exerciseId] ??= []).push({ description: t.description, code: t.code })
+    return acc
+  }, {})
+
+  const exercisesByMission = missionExercises.reduce<Record<string, {
+    id: string; title: string; description: string; starterCode: string; solution: string; hints: string[]
+    tests: { description: string; code: string }[]
+  }[]>>((acc, e) => {
+    ;(acc[e.missionId] ??= []).push({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      starterCode: e.starterCode,
+      solution: e.solution,
+      hints: e.hints,
+      tests: testsByExercise[e.id] ?? [],
+    })
+    return acc
+  }, {})
 
   const progressMap = Object.fromEntries(userProgress.map(p => [p.missionId, p.status]))
   const questionsByMission = questions.reduce<Record<string, typeof questions>>((acc, q) => {
@@ -109,6 +143,7 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
                       mission={mission}
                       status={(progressMap[mission.id] ?? "NOT_STARTED") as "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED"}
                       questions={questionsByMission[mission.id] ?? []}
+                      exercises={exercisesByMission[mission.id] ?? []}
                       isLocked={lockedMissions.has(mission.id)}
                     />
                   ))}

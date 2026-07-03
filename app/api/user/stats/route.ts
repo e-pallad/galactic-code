@@ -5,7 +5,8 @@ import { getClerkId } from "@/lib/auth"
 import { getRankProgress } from "@/lib/xp"
 import { dailyLogs } from "@/lib/db/schema"
 import { sql } from "drizzle-orm"
-import { subDays, startOfDay, startOfWeek, format } from "date-fns"
+import { subDays, startOfWeek, format } from "date-fns"
+import { localDateString } from "@/lib/timezone"
 
 export async function GET() {
   const userId = await getClerkId()
@@ -14,7 +15,7 @@ export async function GET() {
   const user = await getUser(userId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  const today = startOfDay(new Date()).toISOString().slice(0, 10)
+  const today = localDateString(user.timezone)
   const weekStart = format(startOfWeek(new Date()), "yyyy-MM-dd")
   const ninetyDaysAgo = format(subDays(new Date(), 90), "yyyy-MM-dd")
 
@@ -32,8 +33,6 @@ export async function GET() {
     rankLabel: rankProgress.label,
     rankProgress,
     streak: user.streak,
-    plan: user.plan,
-    subscriptionStatus: user.subscriptionStatus,
     aiEnabled: !!process.env.ANTHROPIC_API_KEY,
     dailyProgress: {
       completed: todayLog[0]?.missionsCompleted ?? 0,
