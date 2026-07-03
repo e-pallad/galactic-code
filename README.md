@@ -65,7 +65,6 @@ The goal: make daily learning feel less like homework and more like logging into
 | Cache / Presence | Upstash Redis |
 | Email | Resend |
 | AI | Anthropic SDK (Claude) |
-| Payments | Stripe |
 | Analytics | `@vercel/analytics` |
 | Deployment | Vercel |
 
@@ -113,9 +112,6 @@ All variables are validated via Zod on startup (`lib/env.ts`). The app will not 
 | `CRON_SECRET` | ✅ | Shared secret for cron route auth |
 | `NEXT_PUBLIC_APP_URL` | ✅ | Full public URL (`https://galacticcode.dev`) |
 | `ANTHROPIC_API_KEY` | — | For AI study recommendations |
-| `STRIPE_SECRET_KEY` | — | Stripe backend key (Pro plan) |
-| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook secret |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | — | Stripe frontend key |
 
 ---
 
@@ -132,7 +128,7 @@ npx drizzle-kit studio
 ```
 
 **Schema highlights:**
-- `users` — XP, rank, streak, referral code/count, Stripe subscription
+- `users` — XP, rank, streak, timezone, referral code/count
 - `missions` / `sectors` / `star_systems` — content hierarchy
 - `mission_progress` — per-user mission state
 - `medals` — earned achievements
