@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { and, eq } from "drizzle-orm"
 import {
   tracks,
   starSystems,
@@ -37,8 +38,12 @@ type SystemDef = {
   sectors: SectorDef[]
 }
 
+// Re-runnable: existing systems/sectors/missions are looked up instead of
+// skipped, and exercises are deleted + re-inserted so content updates reach
+// already-seeded databases. Skill checks are only inserted for new missions
+// (the table has no unique constraint, so re-inserting would duplicate them).
 async function seedSystem(trackId: string, sys: SystemDef) {
-  const [system] = await db
+  let [system] = await db
     .insert(starSystems)
     .values({
       trackId,
@@ -52,19 +57,34 @@ async function seedSystem(trackId: string, sys: SystemDef) {
     .onConflictDoNothing()
     .returning()
 
+  if (!system) {
+    ;[system] = await db
+      .select()
+      .from(starSystems)
+      .where(and(eq(starSystems.trackId, trackId), eq(starSystems.number, sys.number)))
+      .limit(1)
+  }
   if (!system) return
 
   for (const sec of sys.sectors) {
-    const [sector] = await db
+    let [sector] = await db
       .insert(sectors)
       .values({ systemId: system.id, number: sec.number, theme: sec.theme })
       .onConflictDoNothing()
       .returning()
 
+    if (!sector) {
+      ;[sector] = await db
+        .select()
+        .from(sectors)
+        .where(and(eq(sectors.systemId, system.id), eq(sectors.number, sec.number)))
+        .limit(1)
+    }
     if (!sector) continue
 
     for (const m of sec.missions) {
-      const [mission] = await db
+      let missionIsNew = true
+      let [mission] = await db
         .insert(missions)
         .values({
           sectorId: sector.id,
@@ -80,9 +100,17 @@ async function seedSystem(trackId: string, sys: SystemDef) {
         .onConflictDoNothing()
         .returning()
 
+      if (!mission) {
+        missionIsNew = false
+        ;[mission] = await db
+          .select()
+          .from(missions)
+          .where(and(eq(missions.sectorId, sector.id), eq(missions.number, m.number)))
+          .limit(1)
+      }
       if (!mission) continue
 
-      if (m.skillChecks) {
+      if (m.skillChecks && missionIsNew) {
         await db
           .insert(skillCheckQuestions)
           .values(
@@ -99,6 +127,8 @@ async function seedSystem(trackId: string, sys: SystemDef) {
       }
 
       if (m.exercises) {
+        // Refresh exercises in place — delete cascades to exercise_tests.
+        await db.delete(exercises).where(eq(exercises.missionId, mission.id))
         for (let ei = 0; ei < m.exercises.length; ei++) {
           const ex = m.exercises[ei]
           const [exercise] = await db
@@ -196,7 +226,9 @@ const reactSystems: SystemDef[] = [
                 description: "Create a MissionCard component that accepts a title and xp prop and renders them inside a div.",
                 starterCode: `function MissionCard({ title, xp }) {
   // render a div with a h2 for title and a span for xp
-}`,
+}
+
+export default MissionCard;`,
                 solution: `function MissionCard({ title, xp }) {
   return (
     <div>
@@ -204,11 +236,21 @@ const reactSystems: SystemDef[] = [
       <span>{xp} XP</span>
     </div>
   );
-}`,
+}
+
+export default MissionCard;`,
                 hints: ["Use curly braces to embed the prop values", "Return a single parent element"],
                 tests: [
-                  { description: "renders the title", code: "expect(container.querySelector('h2').textContent).toBe('Intercept Signal')" },
-                  { description: "renders the xp value", code: "expect(container.textContent).toContain('15 XP')" },
+                  {
+                    description: "renders the title",
+                    code: `const { container } = render(<Component title="Intercept Signal" xp={15} />);
+expect(container.querySelector('h2').textContent).toBe('Intercept Signal');`,
+                  },
+                  {
+                    description: "renders the xp value",
+                    code: `const { container } = render(<Component title="Intercept Signal" xp={15} />);
+expect(container.textContent).toContain('15 XP');`,
+                  },
                 ],
               },
             ],
@@ -298,7 +340,9 @@ const reactSystems: SystemDef[] = [
                 starterCode: `function PilotCard(props) {
   // destructure name, rank, xp from props
   // render: name in h2, rank in p, xp with 'XP' suffix in span
-}`,
+}
+
+export default PilotCard;`,
                 solution: `function PilotCard({ name, rank, xp }) {
   return (
     <div>
@@ -307,11 +351,21 @@ const reactSystems: SystemDef[] = [
       <span>{xp} XP</span>
     </div>
   );
-}`,
+}
+
+export default PilotCard;`,
                 hints: ["Destructure directly in the parameter list", "Each piece of data needs its own element"],
                 tests: [
-                  { description: "renders pilot name", code: "expect(container.querySelector('h2').textContent).toBe('Commander Vega')" },
-                  { description: "renders rank", code: "expect(container.textContent).toContain('Navigator')" },
+                  {
+                    description: "renders pilot name",
+                    code: `const { container } = render(<Component name="Commander Vega" rank="Navigator" xp={230} />);
+expect(container.querySelector('h2').textContent).toBe('Commander Vega');`,
+                  },
+                  {
+                    description: "renders rank",
+                    code: `const { container } = render(<Component name="Commander Vega" rank="Navigator" xp={230} />);
+expect(container.textContent).toContain('Navigator');`,
+                  },
                 ],
               },
             ],
@@ -415,7 +469,9 @@ function MissionCounter() {
       <button>Reset</button>
     </div>
   );
-}`,
+}
+
+export default MissionCounter;`,
                 solution: `import { useState } from 'react';
 
 function MissionCounter() {
@@ -427,11 +483,29 @@ function MissionCounter() {
       <button onClick={() => setCount(0)}>Reset</button>
     </div>
   );
-}`,
+}
+
+export default MissionCounter;`,
                 hints: ["useState returns [value, setter]", "Use functional update form for increment"],
                 tests: [
-                  { description: "starts at 0", code: "expect(container.textContent).toContain('Missions: 0')" },
-                  { description: "increments on click", code: "fireEvent.click(getByText('Complete Mission')); expect(container.textContent).toContain('Missions: 1')" },
+                  {
+                    description: "starts at 0",
+                    code: `const { container } = render(<Component />);
+expect(container.textContent).toContain('Missions: 0');`,
+                  },
+                  {
+                    description: "increments on click",
+                    code: `const { container, getByText } = render(<Component />);
+fireEvent.click(getByText('Complete Mission'));
+expect(container.textContent).toContain('Missions: 1');`,
+                  },
+                  {
+                    description: "resets to 0",
+                    code: `const { container, getByText } = render(<Component />);
+fireEvent.click(getByText('Complete Mission'));
+fireEvent.click(getByText('Reset'));
+expect(container.textContent).toContain('Missions: 0');`,
+                  },
                 ],
               },
             ],
@@ -512,11 +586,7 @@ function MissionCounter() {
   // Don't forget keys!
 }
 
-const missionData = [
-  { id: '1', title: 'Intercept Signal', xp: 15 },
-  { id: '2', title: 'Map the Sector', xp: 20 },
-  { id: '3', title: 'Contact Base', xp: 15 },
-];`,
+export default MissionRoster;`,
                 solution: `function MissionRoster({ missions }) {
   return (
     <ul>
@@ -525,11 +595,27 @@ const missionData = [
       ))}
     </ul>
   );
-}`,
+}
+
+export default MissionRoster;`,
                 hints: ["Use .map() to iterate", "The key must go on the outermost element returned from map"],
                 tests: [
-                  { description: "renders all missions", code: "expect(container.querySelectorAll('li').length).toBe(3)" },
-                  { description: "shows mission title", code: "expect(container.textContent).toContain('Intercept Signal')" },
+                  {
+                    description: "renders all missions",
+                    code: `const data = [
+  { id: '1', title: 'Intercept Signal', xp: 15 },
+  { id: '2', title: 'Map the Sector', xp: 20 },
+  { id: '3', title: 'Contact Base', xp: 15 },
+];
+const { container } = render(<Component missions={data} />);
+expect(container.querySelectorAll('li').length).toBe(3);`,
+                  },
+                  {
+                    description: "shows mission title",
+                    code: `const data = [{ id: '1', title: 'Intercept Signal', xp: 15 }];
+const { container } = render(<Component missions={data} />);
+expect(container.textContent).toContain('Intercept Signal');`,
+                  },
                 ],
               },
             ],
@@ -804,7 +890,9 @@ function useLocalStorage(key, initialValue) {
   // Initialize state from localStorage or initialValue
   // Sync to localStorage when value changes
   // Return [value, setValue]
-}`,
+}
+
+export default useLocalStorage;`,
                 solution: `import { useState, useEffect } from 'react';
 
 function useLocalStorage(key, initialValue) {
@@ -822,11 +910,24 @@ function useLocalStorage(key, initialValue) {
   }, [key, value]);
 
   return [value, setValue];
-}`,
+}
+
+export default useLocalStorage;`,
                 hints: ["Use lazy initialization in useState", "Sync in a useEffect with value as dependency"],
                 tests: [
-                  { description: "returns initial value", code: "const [val] = renderHook(() => useLocalStorage('key', 42)).result.current; expect(val).toBe(42)" },
-                  { description: "persists to localStorage", code: "expect(localStorage.getItem('key')).toBe('42')" },
+                  {
+                    description: "returns initial value",
+                    code: `localStorage.removeItem('gc-test-key');
+const { result } = renderHook(() => Component('gc-test-key', 42));
+expect(result.current[0]).toBe(42);`,
+                  },
+                  {
+                    description: "persists to localStorage",
+                    code: `localStorage.removeItem('gc-test-key2');
+const { result } = renderHook(() => Component('gc-test-key2', 1));
+act(() => { result.current[1](99); });
+expect(JSON.parse(localStorage.getItem('gc-test-key2'))).toBe(99);`,
+                  },
                 ],
               },
             ],

@@ -49,6 +49,9 @@ export const users = pgTable("users", {
   rank: integer("rank").default(1).notNull(),
   track: text("track").default("javascript").notNull(),
   streak: integer("streak").default(0).notNull(),
+  // IANA timezone captured from the browser; null falls back to UTC.
+  // Streak and daily-log day boundaries are computed in this zone.
+  timezone: text("timezone"),
   lastSeenAt: timestamp("last_seen_at"),
   streakFreezeUsedAt: timestamp("streak_freeze_used_at"),
   dailyGoalMissions: integer("daily_goal_missions").default(3).notNull(),
@@ -60,10 +63,6 @@ export const users = pgTable("users", {
   referredBy: uuid("referred_by"),
   referralCount: integer("referral_count").default(0).notNull(),
   credits: integer("credits").default(0).notNull(),
-  plan: text("plan", { enum: ["free", "pro"] }).default("free").notNull(),
-  stripeCustomerId: text("stripe_customer_id"),
-  subscriptionStatus: text("subscription_status", { enum: ["active", "canceled", "past_due"] }),
-  subscriptionExpiresAt: timestamp("subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   deletedAt: timestamp("deleted_at"),
 })

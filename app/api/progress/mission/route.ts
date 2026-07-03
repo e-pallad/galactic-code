@@ -7,7 +7,7 @@ import { XP_VALUES } from "@/lib/xp"
 import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { eq, sql, and, lt, inArray } from "drizzle-orm"
 import { z } from "zod"
-import { startOfDay } from "date-fns"
+import { localDateString } from "@/lib/timezone"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 const schema = z.object({
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
   // Count toward daily quota only on fresh completions — re-completing an
   // already-completed mission must not inflate goals or the heatmap.
   if (action === "complete" && !alreadyCompleted) {
-    const today = startOfDay(new Date()).toISOString().slice(0, 10)
+    const today = localDateString(user.timezone)
     await db
       .insert(dailyLogs)
       .values({ userId: user.id, date: today, missionsCompleted: 1, xpEarned: 0 })

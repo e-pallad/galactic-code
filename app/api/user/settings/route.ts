@@ -3,12 +3,14 @@ import { db } from "@/lib/db"
 import { users, tracks } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId, isDemo } from "@/lib/auth"
+import { isValidTimezone } from "@/lib/timezone"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
 
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
   track: z.string().min(1).max(50).optional(),
+  timezone: z.string().max(64).optional(),
   showOnLeaderboard: z.boolean().optional(),
   emailOptOut: z.boolean().optional(),
   dailyGoalMissions: z.number().int().min(1).max(10).optional(),
@@ -40,6 +42,7 @@ export async function PATCH(req: Request) {
   const updates: Partial<typeof users.$inferInsert> = {}
   if (parsed.data.name !== undefined) updates.name = parsed.data.name
   if (parsed.data.track !== undefined) updates.track = parsed.data.track
+  if (parsed.data.timezone !== undefined && isValidTimezone(parsed.data.timezone)) updates.timezone = parsed.data.timezone
   if (parsed.data.showOnLeaderboard !== undefined) updates.showOnLeaderboard = parsed.data.showOnLeaderboard
   if (parsed.data.emailOptOut !== undefined) updates.emailOptOut = parsed.data.emailOptOut
   if (parsed.data.dailyGoalMissions !== undefined) updates.dailyGoalMissions = parsed.data.dailyGoalMissions

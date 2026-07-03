@@ -1,4 +1,5 @@
 import { Resend } from "resend"
+import { createHmac, timingSafeEqual } from "crypto"
 
 // Lazy singleton — the Resend constructor throws on a missing key, which
 // would crash module load (and `next build` page-data collection) in any
@@ -11,6 +12,29 @@ function resendClient(): Resend {
 
 const FROM = process.env.RESEND_FROM_EMAIL ?? "Galactic Code <noreply@galacticcode.dev>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
+
+// Signed per-user unsubscribe links (RFC 8058 one-click). HMAC keyed with
+// CRON_SECRET so the URL can't be guessed to opt out arbitrary users.
+export function unsubscribeToken(userId: string): string {
+  return createHmac("sha256", process.env.CRON_SECRET ?? "").update(userId).digest("hex")
+}
+
+export function verifyUnsubscribeToken(userId: string, token: string): boolean {
+  const expected = unsubscribeToken(userId)
+  if (token.length !== expected.length) return false
+  return timingSafeEqual(Buffer.from(token), Buffer.from(expected))
+}
+
+export function unsubscribeUrl(userId: string): string {
+  return `${APP_URL}/api/email/unsubscribe?u=${userId}&t=${unsubscribeToken(userId)}`
+}
+
+function unsubscribeHeaders(userId: string): Record<string, string> {
+  return {
+    "List-Unsubscribe": `<${unsubscribeUrl(userId)}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  }
+}
 
 function escapeHtml(str: string): string {
   return str
@@ -44,7 +68,7 @@ export async function sendWelcomeEmail(to: string, name: string | null) {
   })
 }
 
-export async function sendReEngagementEmail(to: string, name: string | null, streak: number) {
+export async function sendReEngagementEmail(userId: string, to: string, name: string | null, streak: number) {
   const displayName = escapeHtml(name ?? "Cadet")
   const streakMsg = streak > 0
     ? `Your Hyperdrive Charge is at ${streak} day${streak !== 1 ? "s" : ""}. Don't let it die.`
@@ -52,6 +76,7 @@ export async function sendReEngagementEmail(to: string, name: string | null, str
   await resendClient().emails.send({
     from: FROM,
     to,
+    headers: unsubscribeHeaders(userId),
     subject: "⚡ Your hyperdrive is fading, " + (name ?? "Cadet"),
     html: `
       <div style="background:#080C14;color:#e2e8f0;font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;border-radius:12px">
@@ -59,13 +84,14 @@ export async function sendReEngagementEmail(to: string, name: string | null, str
         <p style="color:#94a3b8;margin-bottom:24px">${streakMsg}</p>
         <p style="margin-bottom:24px">One mission. 15 XP. That's all it takes to stay on course.</p>
         <a href="${APP_URL}/academy" style="display:inline-block;background:#6366F1;color:#fff;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none">Resume Mission →</a>
-        <p style="color:#475569;font-size:12px;margin-top:32px">Galactic Code Academy · <a href="${APP_URL}/settings" style="color:#475569">Unsubscribe</a></p>
+        <p style="color:#475569;font-size:12px;margin-top:32px">Galactic Code Academy · <a href="${unsubscribeUrl(userId)}" style="color:#475569">Unsubscribe</a></p>
       </div>
     `,
   })
 }
 
 export async function sendWeeklySummaryEmail(
+  userId: string,
   to: string,
   name: string | null,
   stats: { xpThisWeek: number; missionsThisWeek: number; totalXp: number; streak: number; rankLabel: string }
@@ -74,6 +100,7 @@ export async function sendWeeklySummaryEmail(
   await resendClient().emails.send({
     from: FROM,
     to,
+    headers: unsubscribeHeaders(userId),
     subject: `Weekly debrief — ${stats.xpThisWeek} XP earned, ${name ?? "Cadet"}`,
     html: `
       <div style="background:#080C14;color:#e2e8f0;font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px;border-radius:12px">
@@ -98,7 +125,7 @@ export async function sendWeeklySummaryEmail(
           </div>
         </div>
         <a href="${APP_URL}/dashboard" style="display:inline-block;background:#06B6D4;color:#080C14;font-weight:700;padding:12px 24px;border-radius:8px;text-decoration:none">View Command Bridge →</a>
-        <p style="color:#475569;font-size:12px;margin-top:32px">Galactic Code Academy · <a href="${APP_URL}/settings" style="color:#475569">Unsubscribe</a></p>
+        <p style="color:#475569;font-size:12px;margin-top:32px">Galactic Code Academy · <a href="${unsubscribeUrl(userId)}" style="color:#475569">Unsubscribe</a></p>
       </div>
     `,
   })

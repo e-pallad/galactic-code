@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation"
 import { MissionCard } from "@/components/academy/mission-card"
 import { SkillCheckModal } from "@/components/academy/skill-check-modal"
 import { CelebrationModal } from "@/components/gamification/celebration-modal"
+import { ExerciseSection } from "@/components/exercises/exercise-section"
 import { analytics } from "@/lib/analytics"
 import { RANK_THRESHOLDS, MEDAL_DEFINITIONS } from "@/lib/xp"
 import type { Mission } from "@/lib/db/schema"
+import type { ExerciseData } from "@/components/exercises/exercise-runner"
 
 interface Question {
   id: string
@@ -21,11 +23,12 @@ interface MissionCardClientProps {
   mission: Mission
   status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "SKIPPED"
   questions: Question[]
+  exercises?: ExerciseData[]
   isLocked?: boolean
   userName?: string | null
 }
 
-export function MissionCardClient({ mission, status, questions, isLocked = false, userName }: MissionCardClientProps) {
+export function MissionCardClient({ mission, status, questions, exercises = [], isLocked = false, userName }: MissionCardClientProps) {
   const router = useRouter()
   const [currentStatus, setCurrentStatus] = useState(status)
   const [showSkillCheck, setShowSkillCheck] = useState(false)
@@ -96,6 +99,7 @@ export function MissionCardClient({ mission, status, questions, isLocked = false
         onSkip={handleSkip}
         isLocked={isLocked}
       />
+      {!isLocked && exercises.length > 0 && <ExerciseSection exercises={exercises} />}
       {showSkillCheck && questions.length > 0 && (
         <SkillCheckModal
           open={showSkillCheck}
