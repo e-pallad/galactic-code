@@ -7,7 +7,10 @@ import { subDays, startOfDay } from "date-fns"
 import { getRankProgress } from "@/lib/xp"
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get("x-cron-secret")
+  // Vercel Cron invokes with `Authorization: Bearer ${CRON_SECRET}`;
+  // x-cron-secret is kept for manual triggering.
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
+  const secret = bearer ?? req.headers.get("x-cron-secret")
   if (!secret || secret !== process.env.CRON_SECRET) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }

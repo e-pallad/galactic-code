@@ -7,7 +7,8 @@ const CONTEXTS = [
   "Highlighting the streak/Hyperdrive Charge feature — stay consistent and earn bonus XP. ADHD-friendly design with chunked missions and focus timers.",
   "Showcasing the ranking system: Cadet → Navigator → Ensign → Lieutenant → Commander → Captain → Fleet Captain → Admiral → Grand Admiral → Starfleet Legend. Each rank requires XP milestones.",
   "Promoting the Crew Bay real-time co-study feature — see other cadets online, study together.",
-  "Sharing that JavaScript and Python tracks are available, with more coming.",
+  "Sharing that full React, Node.js, and Next.js tracks are available — 3 star systems each, from fundamentals to production mastery — with more coming.",
+  "Promoting the Combat Arena: XP and Credits earned from lessons buy ship gear, then you battle Void Entities solo or with your Fleet. Learning literally powers up your ship.",
 ]
 
 async function generatePost(context: string, platform: "twitter" | "linkedin") {

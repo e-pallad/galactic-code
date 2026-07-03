@@ -10,12 +10,12 @@ import { Slider } from "@/components/ui/slider"
 import { Zap } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
+// Must match active tracks seeded by scripts/seed-curriculum.ts —
+// the onboarding API rejects any track not active in the tracks table.
 const tracks = [
-  { id: "javascript", name: "JavaScript", icon: "⚡", class: "Code Pilot", description: "Build the web. Master JS fundamentals from the ground up." },
   { id: "react", name: "React", icon: "⚛️", class: "Reactor Pilot", description: "Build dynamic UIs. From JSX to advanced state patterns." },
   { id: "nodejs", name: "Node.js", icon: "🖥️", class: "Systems Engineer", description: "Server-side JS. APIs, CLIs, and production backends." },
   { id: "nextjs", name: "Next.js", icon: "🌐", class: "Warp Architect", description: "Full-stack React at warp speed. SSR, auth, and SaaS." },
-  { id: "python", name: "Python", icon: "🔮", class: "Data Mage", description: "Data, AI, automation. Wield Python's power." },
 ]
 
 export default function OnboardingPage() {

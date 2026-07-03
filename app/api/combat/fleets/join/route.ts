@@ -2,13 +2,16 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { fleets, fleetMembers } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
-import { getClerkId } from "@/lib/auth"
+import { getClerkId, isDemo } from "@/lib/auth"
 import { recomputeFleetXp } from "@/lib/combat"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 
 export async function POST(req: Request) {
+  // The shared demo account must not join real users' fleets.
+  if (await isDemo()) return NextResponse.json({ error: "Not available in demo mode" }, { status: 403 })
+
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)

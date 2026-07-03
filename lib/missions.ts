@@ -40,14 +40,23 @@ export async function awardXP(
   opts: { tx?: DbTx; date?: Date } = {}
 ): Promise<{ leveledUp: boolean; newRank: number; newXp: number }> {
   const db_ = opts.tx ?? db
-  const [user] = await db_.select().from(users).where(eq(users.id, userId)).limit(1)
-  if (!user) throw new Error("User not found")
 
-  const newXp = user.totalXp + amount
+  // Atomic increment — a read-modify-write here loses XP under concurrent
+  // awards (mission + medal + streak can all fire in one request).
+  const [updated] = await db_
+    .update(users)
+    .set({ totalXp: sql`${users.totalXp} + ${amount}` })
+    .where(eq(users.id, userId))
+    .returning({ totalXp: users.totalXp, rank: users.rank })
+  if (!updated) throw new Error("User not found")
+
+  const newXp = updated.totalXp
   const newRank = getRankFromXP(newXp)
-  const leveledUp = newRank > user.rank
+  const leveledUp = newRank > updated.rank
 
-  await db_.update(users).set({ totalXp: newXp, rank: newRank }).where(eq(users.id, userId))
+  if (newRank !== updated.rank) {
+    await db_.update(users).set({ rank: newRank }).where(eq(users.id, userId))
+  }
 
   const today = opts.date ?? new Date()
   const dateOnly = startOfDay(today).toISOString().slice(0, 10)

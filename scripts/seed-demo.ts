@@ -5,9 +5,12 @@ async function seed() {
   console.log("🚀 Seeding demo data...")
 
   // Insert tracks
+  // Stub tracks: placeholder content only (a handful of missions, no skill
+  // checks or exercises). Kept inactive so onboarding/settings won't offer
+  // them — the real tracks live in scripts/seed-curriculum.ts.
   await db.insert(tracks).values([
-    { id: "javascript", name: "JavaScript", characterClass: "Code Pilot", icon: "⚡", description: "Master JavaScript from fundamentals to full-stack web development." },
-    { id: "python", name: "Python", characterClass: "Data Mage", icon: "🔮", description: "Wield Python for data science, automation, and backend systems." },
+    { id: "javascript", name: "JavaScript", characterClass: "Code Pilot", icon: "⚡", description: "Master JavaScript from fundamentals to full-stack web development.", isActive: false },
+    { id: "python", name: "Python", characterClass: "Data Mage", icon: "🔮", description: "Wield Python for data science, automation, and backend systems.", isActive: false },
   ]).onConflictDoNothing()
 
   console.log("✓ Tracks seeded")

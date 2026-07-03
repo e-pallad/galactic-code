@@ -45,5 +45,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ received: true })
   }
 
-  return NextResponse.json({ received: true }, { status: 422 })
+  // Unhandled event types are acknowledged with 200 — any non-2xx makes svix
+  // retry the same event indefinitely.
+  return NextResponse.json({ received: true, ignored: event.type })
 }

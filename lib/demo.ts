@@ -18,7 +18,7 @@ export async function resetDemoUser(): Promise<void> {
       avatarUrl: null,
       totalXp: 150,
       rank: 2,
-      track: "javascript",
+      track: "react",
       streak: 3,
       credits: 200,
       onboardingCompleted: true,
@@ -31,6 +31,7 @@ export async function resetDemoUser(): Promise<void> {
         name: "Demo Pilot",
         totalXp: 150,
         rank: 2,
+        track: "react",
         streak: 3,
         credits: 200,
         lastSeenAt: new Date(),
@@ -60,13 +61,15 @@ export async function resetDemoUser(): Promise<void> {
     .values({ userId: demoUser.id, date: today, xpEarned: 45, missionsCompleted: 3 })
     .onConflictDoNothing()
 
-  // Mark first 2 missions in JS system as completed
+  // Mark first 2 missions in the React track's first system as completed so
+  // the demo dashboard shows real progress against the full curriculum.
   const jsMissions = await db
     .select({ id: missions.id })
     .from(missions)
     .innerJoin(sectors, eq(sectors.id, missions.sectorId))
     .innerJoin(starSystems, eq(starSystems.id, sectors.systemId))
-    .where(sql`${starSystems.trackId} = 'javascript' AND ${starSystems.number} = 1`)
+    .where(sql`${starSystems.trackId} = 'react' AND ${starSystems.number} = 1`)
+    .orderBy(sectors.number, missions.number)
     .limit(2)
 
   if (jsMissions.length > 0) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { aiRecommendations } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
-import { getClerkId } from "@/lib/auth"
+import { getClerkId, isDemo } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import Anthropic from "@anthropic-ai/sdk"
 import { aiRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -30,6 +30,9 @@ export async function POST() {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ disabled: true })
   }
+
+  // Demo mode is unauthenticated — don't let anonymous visitors spend API credits.
+  if (await isDemo()) return NextResponse.json({ disabled: true })
 
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

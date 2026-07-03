@@ -45,7 +45,7 @@ const jsonLd = {
       description:
         "Galactic Code is a gamified programming education platform. Players complete coding missions organized into Star Systems and Sectors, earn XP to rank up, and spend Credits on ship gear to battle Void Entities in the Combat Arena.",
       featureList: [
-        "Structured coding missions across JavaScript and TypeScript",
+        "Structured coding missions across React, Node.js, and Next.js",
         "XP-based pilot ranking system with 10 ranks",
         "Credits economy: earn from missions, spend in the Armory",
         "Ship customization with weapon, shield, and engine gear",

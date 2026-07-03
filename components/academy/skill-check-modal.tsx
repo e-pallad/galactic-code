@@ -49,15 +49,19 @@ export function SkillCheckModal({ open, onClose, questions, missionId, onComplet
       setSelectedOption(null)
     } else {
       setSubmitting(true)
-      const correct = newAnswers.filter((a, i) => a === questions[i].correctIndex).length
-      const score = Math.round((correct / questions.length) * 100)
       try {
+        // Server grades against the question bank; client answers only.
         const res = await fetch("/api/progress/skill-check", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ missionId, score }),
+          body: JSON.stringify({
+            missionId,
+            answers: questions.map((q, i) => ({ questionId: q.id, selectedIndex: newAnswers[i] })),
+          }),
         })
-        const data = await res.json() as { xpEarned: number; passed: boolean; perfect: boolean }
+        const data = await res.json() as { score?: number; xpEarned: number; passed: boolean; perfect: boolean }
+        const localScore = Math.round((newAnswers.filter((a, i) => a === questions[i].correctIndex).length / questions.length) * 100)
+        const score = data.score ?? localScore
         analytics.skillCheckSubmit({
           score,
           passed: data.passed ?? score >= 70,
@@ -65,8 +69,9 @@ export function SkillCheckModal({ open, onClose, questions, missionId, onComplet
           xp_earned: data.xpEarned ?? 0,
           question_count: questions.length,
         })
+        setAnswers(newAnswers)
         setShowResult(true)
-        onComplete(score, data.xpEarned)
+        onComplete(score, data.xpEarned ?? 0)
       } finally {
         setSubmitting(false)
       }
