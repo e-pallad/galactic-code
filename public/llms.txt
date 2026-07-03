@@ -16,13 +16,16 @@ Galactic Code is a gamified programming education platform. Learning content is 
 ## Key Public Pages
 
 - [Home](/) — Platform overview and feature explanation
+- [Curriculum](/curriculum) — Full mission catalog for the React, Node.js, and Next.js tracks
+- [Pilot Leaderboard](/pilots) — Public XP ranking
 - [Sign Up](/sign-up) — Create a free account
 - [Sign In](/sign-in) — Returning pilot login
 - [Demo](/demo) — Try the full experience without an account
 
 ## Features
 
-- **Missions** — Structured coding exercises across JavaScript, TypeScript, and more
+- **Missions** — Structured coding exercises across React, Node.js, and Next.js
+- **Sim Deck** — In-browser coding exercises with live tests (Sandpack)
 - **XP & Ranks** — 10 pilot ranks unlocked by accumulating XP
 - **Credits** — Earned from mission completion, spent in the Armory on gear
 - **Ship Hangar** — View base stats, equip/unequip weapons, shields, and engines
@@ -50,6 +53,7 @@ Galactic Code is a gamified programming education platform. Learning content is 
 | Skip mission | 2 |
 | Daily login | 5 |
 | Skill check pass | 20 (35 if perfect) |
+| Sim Deck exercise | 10 |
 | Complete operation | 100 |
 | 7-day streak bonus | +10 |
 | 30-day streak bonus | +25 |

@@ -134,26 +134,36 @@ export const missionResources = pgTable("mission_resources", {
   displayOrder: integer("display_order").default(0).notNull(),
 })
 
-export const skillCheckQuestions = pgTable("skill_check_questions", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  missionId: uuid("mission_id").notNull().references(() => missions.id, { onDelete: "cascade" }),
-  question: text("question").notNull(),
-  options: jsonb("options").notNull().$type<[string, string, string, string]>(),
-  correctIndex: integer("correct_index").notNull(),
-  explanation: text("explanation").notNull(),
-  displayOrder: integer("display_order").default(0).notNull(),
-})
+export const skillCheckQuestions = pgTable(
+  "skill_check_questions",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    missionId: uuid("mission_id").notNull().references(() => missions.id, { onDelete: "cascade" }),
+    question: text("question").notNull(),
+    options: jsonb("options").notNull().$type<[string, string, string, string]>(),
+    correctIndex: integer("correct_index").notNull(),
+    explanation: text("explanation").notNull(),
+    displayOrder: integer("display_order").default(0).notNull(),
+  },
+  (t) => [unique().on(t.missionId, t.displayOrder)]
+)
 
-export const exercises = pgTable("exercises", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  missionId: uuid("mission_id").notNull().references(() => missions.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  starterCode: text("starter_code").notNull(),
-  solution: text("solution").notNull(),
-  hints: jsonb("hints").notNull().$type<string[]>(),
-  displayOrder: integer("display_order").default(0).notNull(),
-})
+export const exercises = pgTable(
+  "exercises",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    missionId: uuid("mission_id").notNull().references(() => missions.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    starterCode: text("starter_code").notNull(),
+    solution: text("solution").notNull(),
+    hints: jsonb("hints").notNull().$type<string[]>(),
+    displayOrder: integer("display_order").default(0).notNull(),
+  },
+  // Stable (mission, position) identity lets the seed upsert in place —
+  // preserving exercise ids that exercise_progress rows point at.
+  (t) => [unique().on(t.missionId, t.displayOrder)]
+)
 
 export const exerciseTests = pgTable("exercise_tests", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -162,6 +172,20 @@ export const exerciseTests = pgTable("exercise_tests", {
   code: text("code").notNull(),
   displayOrder: integer("display_order").default(0).notNull(),
 })
+
+// One row per (user, exercise) — first row pays the Sim Deck XP, later
+// completions are no-ops. Test results are client-reported, so the reward
+// is deliberately small (XP_VALUES.COMPLETE_EXERCISE).
+export const exerciseProgress = pgTable(
+  "exercise_progress",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    exerciseId: uuid("exercise_id").notNull().references(() => exercises.id, { onDelete: "cascade" }),
+    completedAt: timestamp("completed_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.exerciseId)]
+)
 
 export const missionProgress = pgTable(
   "mission_progress",
