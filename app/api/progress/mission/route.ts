@@ -53,14 +53,24 @@ export async function POST(req: Request) {
     if (!allDone) return NextResponse.json({ error: "Complete previous missions first" }, { status: 422 })
   }
 
-  // Check existing progress to prevent re-awarding XP on already-completed missions
+  // Check existing progress to prevent re-awarding XP. A mission is already
+  // rewarded if it's COMPLETED (any action), or SKIPPED and being skipped
+  // again — otherwise repeat skips would farm XP forever. Upgrading
+  // SKIPPED -> COMPLETED still pays the completion XP.
   const [existing] = await db
     .select({ status: missionProgress.status })
     .from(missionProgress)
     .where(and(eq(missionProgress.userId, user.id), eq(missionProgress.missionId, missionId)))
     .limit(1)
 
-  const alreadyCompleted = existing?.status === "COMPLETED"
+  const alreadyCompleted =
+    existing?.status === "COMPLETED" ||
+    (existing?.status === "SKIPPED" && action === "skip")
+
+  // Never downgrade a completed mission back to SKIPPED.
+  if (existing?.status === "COMPLETED" && action === "skip") {
+    return NextResponse.json({ success: true, xpEarned: 0, leveledUp: false, newRank: user.rank, newXp: user.totalXp, newStreak: user.streak, newMedals: [] })
+  }
 
   const xpAmount = action === "skip"
     ? XP_VALUES.SKIP_MISSION
@@ -99,7 +109,9 @@ export async function POST(req: Request) {
     result = await awardXP(user.id, xpAmount)
   }
 
-  if (action === "complete") {
+  // Count toward daily quota only on fresh completions — re-completing an
+  // already-completed mission must not inflate goals or the heatmap.
+  if (action === "complete" && !alreadyCompleted) {
     const today = startOfDay(new Date()).toISOString().slice(0, 10)
     await db
       .insert(dailyLogs)

@@ -43,7 +43,7 @@ The goal: make daily learning feel less like homework and more like logging into
 - Fleet system with crew roles (Captain, Officer, Pilot) and presence indicator
 
 ### Platform
-- Star Map — visual roadmap explorer (JavaScript, TypeScript roadmaps)
+- Star Map — visual roadmap explorer (JavaScript roadmap; more coming)
 - External course tracker (Udemy, YouTube, etc.)
 - Operations — capstone projects tied to each Star System
 - Weekly XP summary emails + re-engagement drip (via Resend)
@@ -84,10 +84,13 @@ cp .env.example .env.local
 # 3. Push database schema
 npx drizzle-kit push
 
-# 4. Seed demo data (optional)
+# 4. Seed the curriculum (required — tracks, systems, missions, skill checks)
+npx tsx scripts/seed-curriculum.ts
+
+# 5. Seed demo account data (optional)
 npx tsx scripts/seed-demo.ts
 
-# 5. Run dev server
+# 6. Run dev server
 npm run dev
 ```
 

@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { User } from "@/lib/db/schema"
 
 interface SettingsFormProps {
   user: User
+  tracks: { id: string; name: string; icon: string; characterClass: string }[]
 }
 
-export function SettingsForm({ user }: SettingsFormProps) {
+export function SettingsForm({ user, tracks }: SettingsFormProps) {
   const router = useRouter()
   const [name, setName] = useState(user.name ?? "")
+  const [track, setTrack] = useState(user.track)
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(user.showOnLeaderboard)
   const [emailOptOut, setEmailOptOut] = useState(user.emailOptOut)
   const [dailyGoal, setDailyGoal] = useState(user.dailyGoalMissions)
@@ -30,7 +33,7 @@ export function SettingsForm({ user }: SettingsFormProps) {
       await fetch("/api/user/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, showOnLeaderboard, emailOptOut, dailyGoalMissions: dailyGoal, weeklyGoalMissions: weeklyGoal }),
+        body: JSON.stringify({ name, track, showOnLeaderboard, emailOptOut, dailyGoalMissions: dailyGoal, weeklyGoalMissions: weeklyGoal }),
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -52,6 +55,22 @@ export function SettingsForm({ user }: SettingsFormProps) {
           <div>
             <Label>Email</Label>
             <p className="text-sm text-[#94a3b8] mt-1">{user.email}</p>
+          </div>
+          <div>
+            <Label htmlFor="track">Learning Track</Label>
+            <Select value={track} onValueChange={setTrack}>
+              <SelectTrigger id="track" className="mt-1">
+                <SelectValue placeholder="Choose your track" />
+              </SelectTrigger>
+              <SelectContent>
+                {tracks.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.icon} {t.name} — {t.characterClass}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-[#94a3b8] mt-1">Your Academy missions come from this track. Progress in other tracks is kept.</p>
           </div>
         </CardContent>
       </Card>

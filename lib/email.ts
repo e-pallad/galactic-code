@@ -1,6 +1,13 @@
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy singleton — the Resend constructor throws on a missing key, which
+// would crash module load (and `next build` page-data collection) in any
+// environment without env vars. Defer construction to first send.
+let _resend: Resend | null = null
+function resendClient(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 
 const FROM = process.env.RESEND_FROM_EMAIL ?? "Galactic Code <noreply@galacticcode.dev>"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://galacticcode.dev"
@@ -16,7 +23,7 @@ function escapeHtml(str: string): string {
 
 export async function sendWelcomeEmail(to: string, name: string | null) {
   const displayName = escapeHtml(name ?? "Cadet")
-  await resend.emails.send({
+  await resendClient().emails.send({
     from: FROM,
     to,
     subject: "Welcome to the Academy, " + (name ?? "Cadet") + " 🚀",
@@ -42,7 +49,7 @@ export async function sendReEngagementEmail(to: string, name: string | null, str
   const streakMsg = streak > 0
     ? `Your Hyperdrive Charge is at ${streak} day${streak !== 1 ? "s" : ""}. Don't let it die.`
     : "Your Hyperdrive Charge has reset. Relight it today."
-  await resend.emails.send({
+  await resendClient().emails.send({
     from: FROM,
     to,
     subject: "⚡ Your hyperdrive is fading, " + (name ?? "Cadet"),
@@ -64,7 +71,7 @@ export async function sendWeeklySummaryEmail(
   stats: { xpThisWeek: number; missionsThisWeek: number; totalXp: number; streak: number; rankLabel: string }
 ) {
   const displayName = escapeHtml(name ?? "Cadet")
-  await resend.emails.send({
+  await resendClient().emails.send({
     from: FROM,
     to,
     subject: `Weekly debrief — ${stats.xpThisWeek} XP earned, ${name ?? "Cadet"}`,

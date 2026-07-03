@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Zap, ArrowRight, Sparkles, Check } from "lucide-react"
 import { CommandBridgePreview } from "@/components/landing/command-bridge-preview"
 
-const trustPoints = ["Free to start", "No credit card", "JavaScript & TypeScript"]
+const trustPoints = ["Free to start", "No credit card", "React, Node.js & Next.js"]
 
 export function Hero() {
   const reduceMotion = useReducedMotion()
