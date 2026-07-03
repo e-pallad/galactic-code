@@ -102,6 +102,8 @@ export default function LandingPage() {
               <Link href="/sign-in" className="hover:text-[#e2e8f0] transition-colors">Sign In</Link>
               <Link href="/sign-up" className="hover:text-[#e2e8f0] transition-colors">Sign Up</Link>
               <Link href="/demo" className="hover:text-[#e2e8f0] transition-colors">Demo</Link>
+              <Link href="/curriculum" className="hover:text-[#e2e8f0] transition-colors">Curriculum</Link>
+              <Link href="/pilots" className="hover:text-[#e2e8f0] transition-colors">Leaderboard</Link>
             </nav>
             <p>© {new Date().getFullYear()} Galactic Code. All rights reserved.</p>
           </div>
