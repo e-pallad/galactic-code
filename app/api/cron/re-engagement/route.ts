@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   let sent = 0
   for (const user of targets) {
     try {
-      await sendReEngagementEmail(user.email, user.name, user.streak)
+      await sendReEngagementEmail(user.id, user.email, user.name, user.streak)
       sent++
     } catch {
       // continue to next user

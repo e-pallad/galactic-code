@@ -1,8 +1,8 @@
-import { differenceInCalendarDays, startOfDay } from "date-fns"
 import { db } from "@/lib/db"
 import { users, dailyLogs, medals } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
 import { getRankFromXP, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
+import { localDateString, calendarDaysBetween } from "@/lib/timezone"
 import type { User } from "@/lib/db/schema"
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0]
@@ -47,7 +47,7 @@ export async function awardXP(
     .update(users)
     .set({ totalXp: sql`${users.totalXp} + ${amount}` })
     .where(eq(users.id, userId))
-    .returning({ totalXp: users.totalXp, rank: users.rank })
+    .returning({ totalXp: users.totalXp, rank: users.rank, timezone: users.timezone })
   if (!updated) throw new Error("User not found")
 
   const newXp = updated.totalXp
@@ -58,8 +58,7 @@ export async function awardXP(
     await db_.update(users).set({ rank: newRank }).where(eq(users.id, userId))
   }
 
-  const today = opts.date ?? new Date()
-  const dateOnly = startOfDay(today).toISOString().slice(0, 10)
+  const dateOnly = localDateString(updated.timezone, opts.date ?? new Date())
 
   await (db_ as typeof db)
     .insert(dailyLogs)
@@ -73,7 +72,12 @@ export async function awardXP(
 }
 
 export async function awardDailyLoginXP(userId: string): Promise<void> {
-  const today = startOfDay(new Date()).toISOString().slice(0, 10)
+  const [user] = await db
+    .select({ timezone: users.timezone })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+  const today = localDateString(user?.timezone)
   const result = await db
     .insert(dailyLogs)
     .values({ userId, date: today, xpEarned: 0 })
@@ -86,8 +90,10 @@ export async function updateStreak(userId: string): Promise<number> {
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1)
   if (!user) throw new Error("User not found")
 
-  const today = startOfDay(new Date())
-  const lastSeen = user.lastSeenAt ? startOfDay(new Date(user.lastSeenAt)) : null
+  // All day boundaries in the user's timezone — UTC days break streaks for
+  // anyone active in their local evening.
+  const today = localDateString(user.timezone)
+  const lastSeen = user.lastSeenAt ? localDateString(user.timezone, new Date(user.lastSeenAt)) : null
 
   let newStreak = user.streak
   let usedFreeze = false
@@ -95,14 +101,15 @@ export async function updateStreak(userId: string): Promise<number> {
   if (!lastSeen) {
     newStreak = 1
   } else {
-    const gap = differenceInCalendarDays(today, lastSeen)
-    if (gap === 0) return user.streak
+    const gap = calendarDaysBetween(lastSeen, today)
+    // gap < 0 can happen after a timezone change — don't punish it.
+    if (gap <= 0) return user.streak
     if (gap === 1) {
       newStreak = user.streak + 1
     } else if (gap === 2) {
       const freezeAvailable =
         !user.streakFreezeUsedAt ||
-        differenceInCalendarDays(today, startOfDay(new Date(user.streakFreezeUsedAt))) >= 7
+        calendarDaysBetween(localDateString(user.timezone, new Date(user.streakFreezeUsedAt)), today) >= 7
       if (freezeAvailable) { usedFreeze = true; newStreak = user.streak + 1 }
       else newStreak = 1
     } else {

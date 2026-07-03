@@ -16,10 +16,12 @@ const isPublicRoute = createRouteMatcher([
   "/llms.txt",
   "/opengraph-image(.*)",
   "/api/og(.*)",
+  "/pilots",
   "/api/health",
   "/api/webhooks/clerk",
   "/api/demo/reset",
   "/api/cron/(.*)",
+  "/api/email/unsubscribe",
 ])
 
 export default clerkMiddleware(async (auth, req) => {
