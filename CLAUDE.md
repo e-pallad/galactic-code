@@ -21,6 +21,11 @@ npx tsx scripts/seed-demo.ts
 npm test
 ```
 
+## Database migrations
+- `drizzle-kit push` doesn't work on this DB (Postgres 18); schema changes are SQL files in `drizzle/manual/` (`YYYY-MM-DD_name.sql`)
+- `npx tsx scripts/migrate.ts status|up|baseline` applies and tracks them (`schema_migrations` table); see `drizzle/manual/README.md`
+- Run `up` against the real database before deploying code that needs the change; never edit a file that has already been applied
+
 ## Install scripts
 - `allowScripts` in `package.json` records the npm install-script decisions (npm 12 blocks dependency install scripts by default). All current ones are denied: builds, lint and tests pass without them
 - If a new dependency genuinely needs its script, approve just that package with `npm install-scripts approve <pkg> --no-allow-scripts-pin` (npm 11.16+)
