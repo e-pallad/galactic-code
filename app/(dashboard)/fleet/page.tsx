@@ -16,6 +16,7 @@ import { eq, and, inArray, sql } from "drizzle-orm"
 import { FleetPageClient } from "@/components/fleet/fleet-page-client"
 import { Users } from "lucide-react"
 import { SectionTabs, CREW_TABS } from "@/components/layout/section-tabs"
+import { getRankFromXP } from "@/lib/xp"
 
 export default async function FleetPage() {
   const clerkId = await getClerkId()
@@ -56,6 +57,8 @@ export default async function FleetPage() {
       .from(fleetMembers)
       .innerJoin(users, eq(users.id, fleetMembers.userId))
       .where(eq(fleetMembers.fleetId, membership.fleetId))
+    // Rank is derived from XP, not the stored column.
+    members = members.map((m) => ({ ...m, user: { ...m.user, rank: getRankFromXP(m.user.totalXp) } }))
 
     // Display the live sum of member XP rather than the stored (possibly stale) value.
     const fleetXp = members.reduce((sum, m) => sum + m.user.totalXp, 0)

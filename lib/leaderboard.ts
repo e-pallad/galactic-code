@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { eq, desc, asc, and, isNull } from "drizzle-orm"
 import type { PilotRow } from "@/components/leaderboard/pilot-list"
+import { getRankFromXP } from "@/lib/xp"
 
 export const LEADERBOARD_PAGE_SIZE = 50
 
@@ -26,5 +27,7 @@ export async function getLeaderboardPage(page: number): Promise<{ pilots: PilotR
     .limit(LEADERBOARD_PAGE_SIZE + 1)
     .offset(offset)
 
-  return { pilots: rows.slice(0, LEADERBOARD_PAGE_SIZE), hasNext: rows.length > LEADERBOARD_PAGE_SIZE }
+  // Rank is derived from XP rather than the stored column, like everywhere else.
+  const pilots = rows.slice(0, LEADERBOARD_PAGE_SIZE).map((r) => ({ ...r, rank: getRankFromXP(r.totalXp) }))
+  return { pilots, hasNext: rows.length > LEADERBOARD_PAGE_SIZE }
 }

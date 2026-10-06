@@ -6,6 +6,7 @@ import { getClerkId, isDemo } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import Anthropic from "@anthropic-ai/sdk"
 import { aiRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { getRankFromXP } from "@/lib/xp"
 
 export async function GET() {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -51,7 +52,7 @@ export async function POST() {
     messages: [{
       role: "user",
       content: `You are a learning coach for Galactic Code, a space-themed programming platform.
-The pilot's stats: Track=${user.track}, Rank=${user.rank}, XP=${user.totalXp}, Streak=${user.streak} days.
+The pilot's stats: Track=${user.track}, Rank=${getRankFromXP(user.totalXp)}, XP=${user.totalXp}, Streak=${user.streak} days.
 Give 3 specific, actionable recommendations to improve their coding journey. Keep it short, motivating, space-themed. Max 150 words.`,
     }],
   })

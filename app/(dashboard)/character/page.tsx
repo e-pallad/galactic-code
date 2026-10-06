@@ -30,7 +30,7 @@ export default async function CharacterPage() {
       <div className="flex items-center justify-between">
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Pilot Dossier</h1>
         <ShareRankButton
-          rank={user.rank}
+          rank={rankInfo.rank}
           rankLabel={rankInfo.label}
           totalXp={user.totalXp}
           name={user.name}

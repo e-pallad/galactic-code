@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
 import { getClerkId } from "@/lib/auth"
 import { eq, desc, and, isNull } from "drizzle-orm"
+import { getRankFromXP } from "@/lib/xp"
 
 export async function GET() {
   const clerkId = await getClerkId()
@@ -23,5 +24,5 @@ export async function GET() {
     .orderBy(desc(users.totalXp))
     .limit(50)
 
-  return NextResponse.json({ pilots: topPilots })
+  return NextResponse.json({ pilots: topPilots.map((p) => ({ ...p, rank: getRankFromXP(p.totalXp) })) })
 }

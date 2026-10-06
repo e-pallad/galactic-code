@@ -2,7 +2,7 @@ import { cache } from "react"
 import { db } from "@/lib/db"
 import { users, dailyLogs, medals } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
-import { getRankFromXP, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
+import { getRankFromXP, didRankUp, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
 import { localDateString, calendarDaysBetween } from "@/lib/timezone"
 import type { User } from "@/lib/db/schema"
 
@@ -55,7 +55,8 @@ export async function awardXP(
 
   const newXp = updated.totalXp
   const newRank = getRankFromXP(newXp)
-  const leveledUp = newRank > updated.rank
+  // Derived from the XP itself, so a drifted users.rank can't fake or hide a level-up.
+  const leveledUp = didRankUp(newXp, amount)
 
   if (newRank !== updated.rank) {
     await db_.update(users).set({ rank: newRank }).where(eq(users.id, userId))
@@ -147,7 +148,7 @@ export async function checkMedals(userId: string): Promise<string[]> {
   if (!user) return []
 
   const existingSlugs = new Set(existingMedals.map((m) => m.slug))
-  const stats = { streak: user.streak, rank: user.rank, totalXp: user.totalXp, missionsCompleted: mCount, operationsCompleted: opCount, skillCheckAttempts: aCount, skillChecksPassed: pCount, perfectChecks: peCount }
+  const stats = { streak: user.streak, rank: getRankFromXP(user.totalXp), totalXp: user.totalXp, missionsCompleted: mCount, operationsCompleted: opCount, skillCheckAttempts: aCount, skillChecksPassed: pCount, perfectChecks: peCount }
 
   const toUnlock = MEDAL_DEFINITIONS.filter((def) => !existingSlugs.has(def.slug) && def.check(stats))
   if (toUnlock.length === 0) return []

@@ -51,6 +51,11 @@ export function getRankFromXP(xp: number): number {
   return rank
 }
 
+/** Whether awarding `amount` XP (landing the total on `newXp`) crossed a rank threshold. */
+export function didRankUp(newXp: number, amount: number): boolean {
+  return getRankFromXP(newXp) > getRankFromXP(newXp - amount)
+}
+
 export function getRankProgress(xp: number): {
   rank: number
   label: string
