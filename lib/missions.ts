@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { db } from "@/lib/db"
 import { users, dailyLogs, medals } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
@@ -7,10 +8,12 @@ import type { User } from "@/lib/db/schema"
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
-export async function getUser(clerkId: string): Promise<User | null> {
+// Memoised per server render, so the dashboard layout, top bar and page share
+// one lookup. Outside a render (route handlers, scripts) it just calls through.
+export const getUser = cache(async (clerkId: string): Promise<User | null> => {
   const result = await db.select().from(users).where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt))).limit(1)
   return result[0] ?? null
-}
+})
 
 export async function syncUser(
   clerkId: string,
