@@ -7,12 +7,15 @@ import { getOrCreateShip, getEquippedItems, getEffectiveStats } from "@/lib/comb
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { requireUnlock } from "@/lib/unlocks-server"
 
 export async function GET() {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/hangar")
+  if (locked) return locked
 
   const ship = await getOrCreateShip(user.id)
   const equippedItems = await getEquippedItems(user.id)
@@ -26,6 +29,8 @@ export async function PATCH(req: Request) {
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/hangar")
+  if (locked) return locked
   const limited = await applyRateLimit(mutationRateLimit, user.id)
   if (limited) return limited
 
