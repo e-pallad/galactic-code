@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "motion/react"
+import { motion, useReducedMotion } from "motion/react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Zap } from "lucide-react"
@@ -20,6 +20,7 @@ const tracks = [
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const reduceMotion = useReducedMotion()
   const [step, setStep] = useState(1)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
   const [dailyGoal, setDailyGoal] = useState(3)
@@ -50,9 +51,9 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 20 }}
+          initial={reduceMotion ? false : { opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3 }}
         >
           {step === 1 && (
             <div>
