@@ -30,3 +30,20 @@ jobs:
 
       - name: Test
         run: npm test -- --run
+
+      # Catches build-only failures (edge-runtime rules, dynamic imports, env
+      # validation) before Vercel does. Placeholder values only; the build
+      # makes no network calls to these services.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          DATABASE_URL: postgresql://ci:ci@localhost/ci
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuZXhhbXBsZS5jb20k
+          CLERK_SECRET_KEY: sk_test_placeholder
+          CLERK_WEBHOOK_SECRET: whsec_placeholder
+          UPSTASH_REDIS_REST_URL: https://example.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: placeholder
+          RESEND_API_KEY: re_placeholder
+          CRON_SECRET: placeholder
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
