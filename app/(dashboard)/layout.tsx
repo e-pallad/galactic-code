@@ -4,6 +4,7 @@ import { TopBar } from "@/components/layout/top-bar"
 import { StarField } from "@/components/layout/star-field"
 import { RouteGuard } from "@/components/layout/route-guard"
 import { UnlockWatcher } from "@/components/layout/unlock-watcher"
+import { DailyCheckIn } from "@/components/layout/daily-check-in"
 import { DemoBanner } from "@/components/demo/demo-banner"
 import { ReferralClaim } from "@/components/gamification/referral-claim"
 import { getClerkId, isDemo } from "@/lib/auth"
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <MobileNav access={access} />
       <ReferralClaim />
       {user && <UnlockWatcher userId={user.id} access={access} />}
+      {user && !demo && <DailyCheckIn userId={user.id} />}
     </div>
   )
 }
