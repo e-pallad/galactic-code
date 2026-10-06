@@ -3,59 +3,57 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, GraduationCap, Swords, User, Menu } from "lucide-react"
+import { Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { navItems } from "./nav-config"
+import { matchesPath } from "./nav-config"
+import { visibleNavItems, type Access } from "@/lib/unlocks"
 
-const primaryItems = [
-  { href: "/dashboard", label: "Bridge", icon: LayoutDashboard },
-  { href: "/academy", label: "Academy", icon: GraduationCap },
-  { href: "/combat", label: "Combat", icon: Swords },
-  { href: "/character", label: "Pilot", icon: User },
-]
-
-export function MobileNav() {
+export function MobileNav({ access }: { access: Access }) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
 
-  const primaryHrefs = new Set(primaryItems.map((i) => i.href))
-  const isPrimaryActive = (href: string) => pathname === href || pathname.startsWith(href + "/")
-  const moreActive = !primaryItems.some((i) => isPrimaryActive(i.href))
+  const items = visibleNavItems(access)
+  const primaryItems = items.filter((i) => i.mobilePrimary)
+  const overflowItems = items.filter((i) => !i.mobilePrimary)
+  const moreActive = overflowItems.some((i) => matchesPath(i, pathname))
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#1e2d3d] bg-[#080C14]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-[#1e2d3d] bg-[#080C14]" aria-label="Main">
         <div className="flex items-center justify-around h-16">
           {primaryItems.map((item) => {
             const Icon = item.icon
-            const isActive = isPrimaryActive(item.href)
+            const isActive = matchesPath(item, pathname)
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
                   isActive ? "text-[#06B6D4]" : "text-[#94a3b8] hover:text-[#e2e8f0]"
                 )}
               >
                 <Icon className="h-5 w-5" />
-                {item.label}
+                {item.shortLabel ?? item.label}
               </Link>
             )
           })}
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            aria-label="More navigation"
-            className={cn(
-              "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
-              moreActive ? "text-[#06B6D4]" : "text-[#94a3b8] hover:text-[#e2e8f0]"
-            )}
-          >
-            <Menu className="h-5 w-5" />
-            More
-          </button>
+          {overflowItems.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMoreOpen(true)}
+              aria-label="More navigation"
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-2 text-xs font-medium transition-colors",
+                moreActive ? "text-[#06B6D4]" : "text-[#94a3b8] hover:text-[#e2e8f0]"
+              )}
+            >
+              <Menu className="h-5 w-5" />
+              More
+            </button>
+          )}
         </div>
       </nav>
 
@@ -65,10 +63,9 @@ export function MobileNav() {
             <DialogTitle>Navigate</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-3 gap-2">
-            {navItems.map((item) => {
+            {overflowItems.map((item) => {
               const Icon = item.icon
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
-              const isPrimary = primaryHrefs.has(item.href)
+              const isActive = matchesPath(item, pathname)
               return (
                 <Link
                   key={item.href}
@@ -83,7 +80,6 @@ export function MobileNav() {
                 >
                   <Icon className="h-5 w-5" />
                   <span className="leading-tight">{item.label}</span>
-                  {isPrimary && <span className="sr-only">(in bottom bar)</span>}
                 </Link>
               )
             })}

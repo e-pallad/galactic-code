@@ -13,6 +13,7 @@ const schema = z.object({
   timezone: z.string().max(64).optional(),
   showOnLeaderboard: z.boolean().optional(),
   emailOptOut: z.boolean().optional(),
+  explorerMode: z.boolean().optional(),
   dailyGoalMissions: z.number().int().min(1).max(10).optional(),
   weeklyGoalMissions: z.number().int().min(1).max(100).optional(),
 })
@@ -45,6 +46,7 @@ export async function PATCH(req: Request) {
   if (parsed.data.timezone !== undefined && isValidTimezone(parsed.data.timezone)) updates.timezone = parsed.data.timezone
   if (parsed.data.showOnLeaderboard !== undefined) updates.showOnLeaderboard = parsed.data.showOnLeaderboard
   if (parsed.data.emailOptOut !== undefined) updates.emailOptOut = parsed.data.emailOptOut
+  if (parsed.data.explorerMode !== undefined) updates.explorerMode = parsed.data.explorerMode
   if (parsed.data.dailyGoalMissions !== undefined) updates.dailyGoalMissions = parsed.data.dailyGoalMissions
   if (parsed.data.weeklyGoalMissions !== undefined) updates.weeklyGoalMissions = parsed.data.weeklyGoalMissions
 

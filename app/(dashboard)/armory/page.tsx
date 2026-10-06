@@ -15,6 +15,7 @@ import { items, userInventory } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { ArmoryClient } from "@/components/armory/armory-client"
 import { ShoppingBag } from "lucide-react"
+import { SectionTabs, HANGAR_TABS } from "@/components/layout/section-tabs"
 
 export default async function ArmoryPage() {
   const clerkId = await getClerkId()
@@ -34,6 +35,7 @@ export default async function ArmoryPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <SectionTabs tabs={HANGAR_TABS} label="Hangar sections" />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-3">
           <ShoppingBag className="h-6 w-6 text-[#06B6D4] shrink-0" />

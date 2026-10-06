@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { subDays, format } from "date-fns"
 import Link from "next/link"
+import { SectionTabs, ACADEMY_TABS } from "@/components/layout/section-tabs"
 
 export const metadata = { title: "Mission Log" }
 
@@ -51,6 +52,7 @@ export default async function MissionLogPage({
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <SectionTabs tabs={ACADEMY_TABS} label="Academy sections" />
       <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Mission Log</h1>
 
       <Card>

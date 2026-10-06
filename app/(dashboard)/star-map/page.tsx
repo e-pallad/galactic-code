@@ -5,6 +5,7 @@ import { join } from "path"
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Map, ArrowRight } from "lucide-react"
+import { SectionTabs, ACADEMY_TABS } from "@/components/layout/section-tabs"
 
 export const metadata = { title: "Star Map" }
 
@@ -31,6 +32,7 @@ export default async function StarMapPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <SectionTabs tabs={ACADEMY_TABS} label="Academy sections" />
       <div className="flex items-center gap-3">
         <Map className="h-6 w-6 text-[#06B6D4]" />
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Star Map</h1>

@@ -15,6 +15,7 @@ import { fleets, fleetMembers, users, battles, battleParticipants, entities } fr
 import { eq, and, inArray, sql } from "drizzle-orm"
 import { FleetPageClient } from "@/components/fleet/fleet-page-client"
 import { Users } from "lucide-react"
+import { SectionTabs, CREW_TABS } from "@/components/layout/section-tabs"
 
 export default async function FleetPage() {
   const clerkId = await getClerkId()
@@ -96,6 +97,7 @@ export default async function FleetPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <SectionTabs tabs={CREW_TABS} label="Crew sections" />
       <div className="flex items-center gap-3">
         <Users className="h-6 w-6 text-[#06B6D4]" />
         <div>

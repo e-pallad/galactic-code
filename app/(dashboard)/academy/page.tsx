@@ -8,6 +8,7 @@ import { starSystems, missions, missionProgress, operations } from "@/lib/db/sch
 import { eq, sql } from "drizzle-orm"
 import { StarSystemCard } from "@/components/academy/star-system-card"
 import { Progress } from "@/components/ui/progress"
+import { SectionTabs, ACADEMY_TABS } from "@/components/layout/section-tabs"
 
 export const metadata = { title: "Academy" }
 
@@ -62,6 +63,7 @@ export default async function AcademyPage() {
 
   return (
     <div className="space-y-6 max-w-5xl">
+      <SectionTabs tabs={ACADEMY_TABS} label="Academy sections" />
       <div>
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Academy</h1>
         <p className="text-[#94a3b8] text-sm mt-1">Your {user.track} learning path</p>

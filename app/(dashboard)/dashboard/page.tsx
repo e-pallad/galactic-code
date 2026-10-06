@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic"
 
 import { redirect } from "next/navigation"
 import { getUser, awardDailyLoginXP, updateStreak } from "@/lib/missions"
-import { getClerkId } from "@/lib/auth"
+import { getClerkId, isDemo } from "@/lib/auth"
+import { canAccess, getAccess, unlockRankForPath } from "@/lib/unlocks"
 import { db } from "@/lib/db"
 import { dailyLogs, missionProgress, missions } from "@/lib/db/schema"
 import { eq, sql, desc } from "drizzle-orm"
@@ -25,6 +26,8 @@ export default async function DashboardPage() {
 
   const user = await getUser(clerkId)
   if (!user) redirect("/sign-in")
+
+  const showCrew = canAccess(getAccess(user, await isDemo()), unlockRankForPath("/fleet"))
 
   // Award daily login XP and update streak
   await Promise.all([
@@ -59,7 +62,7 @@ export default async function DashboardPage() {
         lastMission={lastMissionData[0] ? { id: lastMissionData[0].missionId, title: lastMissionData[0].title, systemId: lastMissionData[0].systemId } : null}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${showCrew ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-xs text-[#94a3b8] font-normal flex items-center gap-1.5">
@@ -92,16 +95,18 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs text-[#94a3b8] font-normal flex items-center gap-1.5">
-              <Target className="h-3.5 w-3.5" /> Crew Online
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CrewWidget />
-          </CardContent>
-        </Card>
+        {showCrew && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-[#94a3b8] font-normal flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5" /> Crew Online
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CrewWidget />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
