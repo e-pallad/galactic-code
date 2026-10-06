@@ -11,6 +11,7 @@ const schema = z.object({
   track: z.string().min(1).max(50),
   dailyGoalMissions: z.number().int().min(1).max(10),
   timezone: z.string().max(64).optional(),
+  explorerMode: z.boolean().optional(),
 })
 
 export async function POST(req: Request) {
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
       track: parsed.data.track,
       dailyGoalMissions: parsed.data.dailyGoalMissions,
       ...(timezone ? { timezone } : {}),
+      ...(parsed.data.explorerMode !== undefined ? { explorerMode: parsed.data.explorerMode } : {}),
       onboardingCompleted: true,
     })
     .where(eq(users.id, user.id))
