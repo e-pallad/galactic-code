@@ -58,6 +58,8 @@ export const users = pgTable("users", {
   weeklyGoalMissions: integer("weekly_goal_missions").default(10).notNull(),
   onboardingCompleted: boolean("onboarding_completed").default(false).notNull(),
   showOnLeaderboard: boolean("show_on_leaderboard").default(false).notNull(),
+  // Show every area regardless of rank (see lib/unlocks.ts).
+  explorerMode: boolean("explorer_mode").default(false).notNull(),
   emailOptOut: boolean("email_opt_out").default(false).notNull(),
   referralCode: text("referral_code").unique(),
   referredBy: uuid("referred_by"),

@@ -6,6 +6,7 @@ import { getClerkId } from "@/lib/auth"
 import { getLeaderboardPage, LEADERBOARD_PAGE_SIZE } from "@/lib/leaderboard"
 import { PilotList } from "@/components/leaderboard/pilot-list"
 import { Trophy } from "lucide-react"
+import { SectionTabs, CREW_TABS } from "@/components/layout/section-tabs"
 
 export const metadata = { title: "Leaderboard" }
 
@@ -26,6 +27,7 @@ export default async function LeaderboardPage({
 
   return (
     <div className="space-y-6 max-w-2xl">
+      <SectionTabs tabs={CREW_TABS} label="Crew sections" />
       <div className="flex items-center gap-3">
         <Trophy className="h-6 w-6 text-[#06B6D4]" />
         <h1 className="font-heading text-2xl font-bold text-[#e2e8f0]">Leaderboard</h1>

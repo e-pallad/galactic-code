@@ -51,5 +51,11 @@ npm test
 - Complete operation: 100
 - Streak bonus 7d: +10, 30d: +25
 
+## Navigation unlocks
+- Areas appear by rank: `unlockRank` per item in `components/layout/nav-config.ts`, logic in `lib/unlocks.ts`
+- Explorer Mode (`users.explorer_mode`) and the demo show everything; direct URLs to locked areas render a lock screen (`RouteGuard`)
+- Merged areas keep their routes and share a `SectionTabs` strip (Academy, Hangar, Crew); list them in `alsoMatches`
+- Settings lives in the top bar, not the nav
+
 ## Env vars
 All validated via Zod in `lib/env.ts`. See `.env.example`.

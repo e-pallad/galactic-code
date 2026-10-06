@@ -22,6 +22,7 @@ export function SettingsForm({ user, tracks }: SettingsFormProps) {
   const [track, setTrack] = useState(user.track)
   const [showOnLeaderboard, setShowOnLeaderboard] = useState(user.showOnLeaderboard)
   const [emailOptOut, setEmailOptOut] = useState(user.emailOptOut)
+  const [explorerMode, setExplorerMode] = useState(user.explorerMode)
   const [dailyGoal, setDailyGoal] = useState(user.dailyGoalMissions)
   const [weeklyGoal, setWeeklyGoal] = useState(user.weeklyGoalMissions)
   const [saving, setSaving] = useState(false)
@@ -40,6 +41,7 @@ export function SettingsForm({ user, tracks }: SettingsFormProps) {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           showOnLeaderboard,
           emailOptOut,
+          explorerMode,
           dailyGoalMissions: dailyGoal,
           weeklyGoalMissions: weeklyGoal,
         }),
@@ -80,6 +82,19 @@ export function SettingsForm({ user, tracks }: SettingsFormProps) {
               </SelectContent>
             </Select>
             <p className="text-xs text-[#94a3b8] mt-1">Your Academy missions come from this track. Progress in other tracks is kept.</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Interface</CardTitle></CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-[#e2e8f0]">Explorer Mode</p>
+              <p className="text-xs text-[#94a3b8]">Show every area now instead of unlocking them as you rank up</p>
+            </div>
+            <Switch checked={explorerMode} onCheckedChange={setExplorerMode} aria-label="Explorer Mode" />
           </div>
         </CardContent>
       </Card>
