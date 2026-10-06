@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic"
 
 import { redirect } from "next/navigation"
-import { getUser, awardDailyLoginXP, updateStreak } from "@/lib/missions"
+import { getUser } from "@/lib/missions"
 import { getClerkId, isDemo } from "@/lib/auth"
 import { canAccess, getAccess, unlockRankForPath } from "@/lib/unlocks"
 import { db } from "@/lib/db"
@@ -28,12 +28,6 @@ export default async function DashboardPage() {
   if (!user) redirect("/sign-in")
 
   const showCrew = canAccess(getAccess(user, await isDemo()), unlockRankForPath("/fleet"))
-
-  // Award daily login XP and update streak
-  await Promise.all([
-    awardDailyLoginXP(user.id),
-    updateStreak(user.id),
-  ])
 
   const today = format(new Date(), "yyyy-MM-dd")
   const weekStart = format(startOfWeek(new Date()), "yyyy-MM-dd")
