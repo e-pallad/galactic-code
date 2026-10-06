@@ -6,12 +6,15 @@ import { getClerkId } from "@/lib/auth"
 import { fleePartyShot } from "@/lib/combat"
 import { eq, and, sql } from "drizzle-orm"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { requireUnlock } from "@/lib/unlocks-server"
 
 export async function POST(req: Request, { params }: { params: Promise<{ battleId: string }> }) {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/combat")
+  if (locked) return locked
   const limited = await applyRateLimit(mutationRateLimit, user.id)
   if (limited) return limited
 

@@ -4,12 +4,15 @@ import { fleets } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { ilike, or } from "drizzle-orm"
+import { requireUnlock } from "@/lib/unlocks-server"
 
 export async function GET(req: Request) {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/fleet")
+  if (locked) return locked
 
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")?.slice(0, 50) ?? ""

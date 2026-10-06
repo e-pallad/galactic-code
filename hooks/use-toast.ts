@@ -13,6 +13,8 @@ type ToasterToast = ToastProps & {
   action?: React.ReactElement
 }
 
+// Only referenced via `typeof` below, which the unused-vars rule can't see.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
   UPDATE_TOAST: "UPDATE_TOAST",

@@ -5,12 +5,15 @@ import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { eq } from "drizzle-orm"
 import { getRankFromXP } from "@/lib/xp"
+import { requireUnlock } from "@/lib/unlocks-server"
 
 export async function GET() {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/fleet")
+  if (locked) return locked
 
   const [membership] = await db.select().from(fleetMembers).where(eq(fleetMembers.userId, user.id)).limit(1)
   if (!membership) return NextResponse.json({ fleet: null, members: [] })

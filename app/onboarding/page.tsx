@@ -4,9 +4,10 @@ export const dynamic = "force-dynamic"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { motion } from "motion/react"
+import { motion, useReducedMotion } from "motion/react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import { Switch } from "@/components/ui/switch"
 import { Zap } from "lucide-react"
 import { analytics } from "@/lib/analytics"
 
@@ -20,10 +21,12 @@ const tracks = [
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const reduceMotion = useReducedMotion()
   const [step, setStep] = useState(1)
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null)
   const [dailyGoal, setDailyGoal] = useState(3)
   const [loading, setLoading] = useState(false)
+  const [explorerMode, setExplorerMode] = useState(false)
 
   const handleComplete = async () => {
     if (!selectedTrack) return
@@ -35,6 +38,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           track: selectedTrack,
           dailyGoalMissions: dailyGoal,
+          explorerMode,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       })
@@ -50,9 +54,9 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg">
         <motion.div
           key={step}
-          initial={{ opacity: 0, x: 20 }}
+          initial={reduceMotion ? false : { opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: reduceMotion ? 0 : 0.3 }}
         >
           {step === 1 && (
             <div>
@@ -111,6 +115,15 @@ export default function OnboardingPage() {
                   <span>5 (Moderate)</span>
                   <span>10 (Intense)</span>
                 </div>
+              </div>
+              <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-[#1e2d3d] bg-[#0d1520] mb-8">
+                <div>
+                  <p className="text-sm font-medium text-[#e2e8f0]">Show me everything now</p>
+                  <p className="text-xs text-[#94a3b8]">
+                    Otherwise new areas appear as you rank up. Change this any time in Settings.
+                  </p>
+                </div>
+                <Switch checked={explorerMode} onCheckedChange={setExplorerMode} aria-label="Show me everything now" />
               </div>
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep(1)} className="flex-1">Back</Button>
