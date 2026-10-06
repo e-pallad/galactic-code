@@ -19,9 +19,9 @@ describe("visibleNavItems", () => {
     expect(hrefs(100)).toContain("/sim-bay")
     expect(hrefs(100)).not.toContain("/operations")
     expect(hrefs(250)).toContain("/operations")
-    expect(hrefs(500)).toEqual(expect.arrayContaining(["/hangar", "/combat"]))
+    expect(hrefs(500)).toEqual(expect.arrayContaining(["/hangar", "/combat", "/fleet"]))
     expect(hrefs(499)).not.toContain("/combat")
-    expect(hrefs(1000)).toContain("/fleet")
+    expect(hrefs(499)).not.toContain("/fleet")
   })
   it("shows everything in explorer mode and in the demo", () => {
     expect(hrefs(0, true)).toHaveLength(8)
@@ -33,7 +33,7 @@ describe("visibleNavItems", () => {
 describe("unlockRankForPath", () => {
   it("maps merged routes onto their parent area", () => {
     expect(unlockRankForPath("/armory")).toBe(4)
-    expect(unlockRankForPath("/leaderboard")).toBe(5)
+    expect(unlockRankForPath("/leaderboard")).toBe(4)
     expect(unlockRankForPath("/combat/abc")).toBe(4)
     expect(unlockRankForPath("/mission-log")).toBe(1)
     expect(unlockRankForPath("/star-map/js")).toBe(1)
@@ -48,11 +48,11 @@ describe("nextUnlock / newlyUnlocked", () => {
   it("finds the nearest locked area", () => {
     expect(nextUnlock(1)?.href).toBe("/sim-bay")
     expect(nextUnlock(3)?.unlockRank).toBe(4)
-    expect(nextUnlock(5)).toBeNull()
+    expect(nextUnlock(4)).toBeNull()
   })
   it("lists everything crossed by a rank-up, including skipped ranks", () => {
     expect(newlyUnlocked(1, 2).map((i) => i.href)).toEqual(["/sim-bay"])
-    expect(newlyUnlocked(3, 5).map((i) => i.href)).toEqual(["/hangar", "/combat", "/fleet"])
+    expect(newlyUnlocked(3, 4).map((i) => i.href)).toEqual(["/hangar", "/combat", "/fleet"])
     expect(newlyUnlocked(5, 5)).toEqual([])
   })
 })

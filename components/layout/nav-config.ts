@@ -39,7 +39,7 @@ export const navItems: NavItem[] = [
   { href: "/hangar", label: "Hangar", icon: Anchor, unlockRank: 4, alsoMatches: ["/armory"] },
   { href: "/combat", label: "Combat", icon: Swords, unlockRank: 4, mobilePrimary: true },
   // Crew hosts Fleet and the Leaderboard.
-  { href: "/fleet", label: "Crew", icon: Users, unlockRank: 5, alsoMatches: ["/leaderboard"] },
+  { href: "/fleet", label: "Crew", icon: Users, unlockRank: 4, alsoMatches: ["/leaderboard"] },
 ]
 
 export function matchesPath(item: NavItem, pathname: string): boolean {
