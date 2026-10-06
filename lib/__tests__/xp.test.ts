@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getRankFromXP, getRankProgress, getCharacterClass } from "@/lib/xp"
+import { getRankFromXP, getRankProgress, getCharacterClass, didRankUp } from "@/lib/xp"
 
 describe("getRankFromXP", () => {
   it("returns rank 1 for 0 XP", () => {
@@ -59,5 +59,24 @@ describe("getCharacterClass", () => {
   it("returns default for unknown track", () => {
     const cls = getCharacterClass("unknown-track")
     expect(cls.name).toBe("Space Cadet")
+  })
+})
+
+describe("didRankUp", () => {
+  it("is true when an award lands exactly on a threshold", () => {
+    expect(didRankUp(100, 15)).toBe(true)
+  })
+  it("is true when an award crosses a threshold", () => {
+    expect(didRankUp(110, 20)).toBe(true)
+  })
+  it("is false when the award stays within a rank", () => {
+    expect(didRankUp(99, 15)).toBe(false)
+    expect(didRankUp(120, 15)).toBe(false)
+  })
+  it("can cross several ranks at once", () => {
+    expect(didRankUp(1000, 900)).toBe(true)
+  })
+  it("is false for a zero award", () => {
+    expect(didRankUp(100, 0)).toBe(false)
   })
 })

@@ -4,6 +4,7 @@ import { fleets, fleetMembers, users } from "@/lib/db/schema"
 import { getUser } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { eq } from "drizzle-orm"
+import { getRankFromXP } from "@/lib/xp"
 
 export async function GET() {
   const clerkId = await getClerkId()
@@ -21,5 +22,6 @@ export async function GET() {
     .innerJoin(users, eq(users.id, fleetMembers.userId))
     .where(eq(fleetMembers.fleetId, membership.fleetId))
 
-  return NextResponse.json({ fleet, members, myRole: membership.role })
+  const roster = members.map((m) => ({ ...m, user: { ...m.user, rank: getRankFromXP(m.user.totalXp) } }))
+  return NextResponse.json({ fleet, members: roster, myRole: membership.role })
 }

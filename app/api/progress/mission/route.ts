@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { missionProgress, missions, dailyLogs } from "@/lib/db/schema"
 import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
-import { XP_VALUES } from "@/lib/xp"
+import { XP_VALUES, getRankFromXP } from "@/lib/xp"
 import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { eq, sql, and, lt, inArray } from "drizzle-orm"
 import { z } from "zod"
@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
   // Never downgrade a completed mission back to SKIPPED.
   if (existing?.status === "COMPLETED" && action === "skip") {
-    return NextResponse.json({ success: true, xpEarned: 0, leveledUp: false, newRank: user.rank, newXp: user.totalXp, newStreak: user.streak, newMedals: [] })
+    return NextResponse.json({ success: true, xpEarned: 0, leveledUp: false, newRank: getRankFromXP(user.totalXp), newXp: user.totalXp, newStreak: user.streak, newMedals: [] })
   }
 
   const xpAmount = action === "skip"
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
   let result: { leveledUp: boolean; newRank: number; newXp: number } = {
     leveledUp: false,
-    newRank: user.rank,
+    newRank: getRankFromXP(user.totalXp),
     newXp: user.totalXp,
   }
 

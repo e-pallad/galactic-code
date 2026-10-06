@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { skillCheckAttempts, skillCheckQuestions } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
-import { XP_VALUES } from "@/lib/xp"
+import { XP_VALUES, getRankFromXP } from "@/lib/xp"
 import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
 
   let result: { leveledUp: boolean; newRank: number; newXp: number } = {
     leveledUp: false,
-    newRank: user.rank,
+    newRank: getRankFromXP(user.totalXp),
     newXp: user.totalXp,
   }
 

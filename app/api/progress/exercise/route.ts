@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { exercises, exerciseProgress } from "@/lib/db/schema"
 import { getUser, awardXP } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
-import { XP_VALUES } from "@/lib/xp"
+import { XP_VALUES, getRankFromXP } from "@/lib/xp"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     .returning({ id: exerciseProgress.id })
 
   if (!inserted) {
-    return NextResponse.json({ xpEarned: 0, alreadyCompleted: true, leveledUp: false, newRank: user.rank, newXp: user.totalXp })
+    return NextResponse.json({ xpEarned: 0, alreadyCompleted: true, leveledUp: false, newRank: getRankFromXP(user.totalXp), newXp: user.totalXp })
   }
 
   const result = await awardXP(user.id, XP_VALUES.COMPLETE_EXERCISE)

@@ -29,7 +29,7 @@ export async function GET() {
 
   return NextResponse.json({
     totalXp: user.totalXp,
-    rank: user.rank,
+    rank: rankProgress.rank,
     rankLabel: rankProgress.label,
     rankProgress,
     streak: user.streak,
