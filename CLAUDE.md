@@ -21,6 +21,10 @@ npx tsx scripts/seed-demo.ts
 npm test
 ```
 
+## Install scripts
+- `allowScripts` in `package.json` records the npm install-script decisions (npm 12 blocks dependency install scripts by default). All current ones are denied: builds, lint and tests pass without them
+- If a new dependency genuinely needs its script, approve just that package with `npm install-scripts approve <pkg> --no-allow-scripts-pin` (npm 11.16+)
+
 ## Critical rules
 - Never `export const runtime = "edge"` on routes that import `lib/db` (Neon is Node-only)
 - `export const runtime = "edge"` is only for `/api/crew-bay/presence` (Upstash only)
