@@ -7,6 +7,7 @@ import { XP_VALUES } from "@/lib/xp"
 import { eq, and, ne } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { requireUnlock } from "@/lib/unlocks-server"
 
 const createSchema = z.object({
   action: z.literal("create"),
@@ -42,6 +43,8 @@ export async function POST(req: Request) {
 
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
+  const locked = await requireUnlock(user, "/operations")
+  if (locked) return locked
 
   const limited = await applyRateLimit(mutationRateLimit, user.id)
   if (limited) return limited
