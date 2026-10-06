@@ -48,7 +48,6 @@
   },
   "devDependencies": {
     "@capacitor/android": "^8.4.0",
-    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
@@ -68,5 +67,12 @@
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "@clerk/shared": false,
+    "esbuild": false,
+    "es5-ext": false,
+    "sharp": false,
+    "unrs-resolver": false
   }
 }
