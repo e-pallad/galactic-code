@@ -122,7 +122,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ battleI
         actorUserId: user.id,
         damageDealt: 0,
         isCritical: false,
-        description: `Victory! ${entity.name} has been defeated! Every surviving pilot earns +${creditsAwarded} CR, +${xpAwarded} XP`,
+        description: `Victory! ${entity.name} has been defeated! Every pilot who fought earns +${creditsAwarded} CR, +${xpAwarded} XP`,
         turnNumber: turnNumber + 1,
       })
     }
