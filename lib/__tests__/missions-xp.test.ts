@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { PgDialect } from "drizzle-orm/pg-core"
+import type { SQL } from "drizzle-orm"
 
 // Queue-driven drizzle stand-in: every query-builder chain is a thenable that
 // resolves to the next queued result (empty array once the queue runs dry), and
@@ -66,6 +68,16 @@ describe("awardXP", () => {
     await awardXP("u1", 15)
     expect(setArgs().some((s) => "totalXp" in s && Object.keys(s).length === 1)).toBe(true)
     expect(updates()).toBe(2)
+  })
+
+  it("matches every fleet the pilot is in, not just one", async () => {
+    h.results.push([{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    await awardXP("u1", 15)
+    const rendered = h.calls
+      .filter((c) => c.method === "where")
+      .map((c) => new PgDialect().sqlToQuery(c.args[0] as SQL).sql)
+    const fleetWhere = rendered.find((q) => q.includes("fleet_members"))
+    expect(fleetWhere).toContain(" IN (SELECT ")
   })
 
   it("throws when the user does not exist", async () => {

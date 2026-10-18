@@ -23,6 +23,14 @@ export const mutationRateLimit = new Ratelimit({
   prefix: "galactic:mutation",
 })
 
+// Rewarded course completions: 2 per rolling 24h per pilot. Redis makes the slot
+// reservation atomic, which a count-then-update in Postgres can't be.
+export const courseRewardLimit = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(2, "24 h"),
+  prefix: "galactic:course-reward",
+})
+
 export const demoRateLimit = new Ratelimit({
   redis,
   limiter: Ratelimit.slidingWindow(10, "1 m"),

@@ -86,11 +86,12 @@ export async function awardXP(
   }
 
   // Keep the pilot's fleet total in step (fleet = sum of its members' XP). Join and
-  // leave recompute it from scratch; this covers every award in between.
+  // leave recompute it from scratch; this covers every award in between. IN, not =:
+  // nothing enforces one membership per pilot, and a scalar subquery would throw on two.
   await db_
     .update(fleets)
     .set({ totalXp: sql`${fleets.totalXp} + ${amount}` })
-    .where(sql`${fleets.id} = (SELECT ${fleetMembers.fleetId} FROM ${fleetMembers} WHERE ${fleetMembers.userId} = ${userId})`)
+    .where(sql`${fleets.id} IN (SELECT ${fleetMembers.fleetId} FROM ${fleetMembers} WHERE ${fleetMembers.userId} = ${userId})`)
 
   const dateOnly = localDateString(updated.timezone, opts.date ?? new Date())
 

@@ -15,8 +15,8 @@ export const XP_VALUES = {
   STREAK_BONUS_30: 25,
 } as const
 
-/** External courses are self-reported, so their XP is capped: 2 rewarded completions per rolling 24h, on courses of 5+ lessons. */
-export const COURSE_REWARD_LIMITS = { perDay: 2, minLessons: 5, maxTracked: 50 } as const
+/** External courses are self-reported, so their XP is capped: 2 rewarded completions per rolling 24h (see `courseRewardLimit`), on courses of 5+ lessons. */
+export const COURSE_REWARD_LIMITS = { minLessons: 5, maxTracked: 50 } as const
 
 /** Referral XP is paid to a referrer for at most this many sign-ups, so throwaway accounts can't farm it. */
 export const REFERRAL_LIMITS = { xpEach: 50, maxRewarded: 25 } as const

@@ -5,9 +5,9 @@ import { getUser, awardXP } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES, COURSE_REWARD_LIMITS } from "@/lib/xp"
 import { httpUrl } from "@/lib/validation"
-import { eq, and, gt, sql } from "drizzle-orm"
+import { eq, and, sql } from "drizzle-orm"
 import { z } from "zod"
-import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { mutationRateLimit, courseRewardLimit, applyRateLimit } from "@/lib/rate-limit"
 import { readJson } from "@/lib/http"
 
 const addSchema = z.object({
@@ -76,32 +76,29 @@ export async function POST(req: Request) {
   if (parsed.data.action === "complete") {
     const { id } = parsed.data
 
-    const [target] = await db
-      .select({ totalLessons: externalCourses.totalLessons })
-      .from(externalCourses)
-      .where(and(eq(externalCourses.id, id), eq(externalCourses.userId, user.id), eq(externalCourses.isCompleted, false)))
-      .limit(1)
-    if (!target) return NextResponse.json({ course: null })
-
-    // Self-reported progress can't be verified, so rewards are capped: short
-    // courses and anything past the daily allowance complete without XP.
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    const [recent] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(externalCourses)
-      .where(and(eq(externalCourses.userId, user.id), gt(externalCourses.xpEarned, 0), gt(externalCourses.completedAt, dayAgo)))
-    const rewarded =
-      target.totalLessons >= COURSE_REWARD_LIMITS.minLessons &&
-      Number(recent?.count ?? 0) < COURSE_REWARD_LIMITS.perDay
-    const xp = rewarded ? XP_VALUES.COMPLETE_COURSE : 0
-
-    // Atomic claim: only the request that flips isCompleted pays.
+    // Atomic claim: only the request that flips isCompleted can go on to a reward.
     const [course] = await db.update(externalCourses)
-      .set({ isCompleted: true, completedAt: new Date(), completedLessons: externalCourses.totalLessons, xpEarned: xp })
+      .set({ isCompleted: true, completedAt: new Date(), completedLessons: externalCourses.totalLessons })
       .where(and(eq(externalCourses.id, id), eq(externalCourses.userId, user.id), eq(externalCourses.isCompleted, false)))
       .returning()
-    if (course && xp > 0) await awardXP(user.id, xp)
-    return NextResponse.json({ course: course ?? null, xpEarned: course ? xp : 0 })
+    if (!course) return NextResponse.json({ course: null, xpEarned: 0 })
+
+    // Self-reported progress can't be verified, so rewards are capped: short courses
+    // and anything past the daily allowance complete without XP. The allowance is
+    // reserved atomically in Redis, so parallel completions can't all slip under it.
+    let xp = 0
+    if (course.totalLessons >= COURSE_REWARD_LIMITS.minLessons) {
+      try {
+        if ((await courseRewardLimit.limit(user.id)).success) xp = XP_VALUES.COMPLETE_COURSE
+      } catch (err) {
+        console.error("[courses] reward limiter unavailable, completing without XP:", err)
+      }
+    }
+    if (xp > 0) {
+      await db.update(externalCourses).set({ xpEarned: xp }).where(eq(externalCourses.id, id))
+      await awardXP(user.id, xp)
+    }
+    return NextResponse.json({ course: { ...course, xpEarned: xp }, xpEarned: xp })
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 })

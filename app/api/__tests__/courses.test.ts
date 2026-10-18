@@ -5,11 +5,11 @@ import { XP_VALUES } from "@/lib/xp"
 vi.mock("@/lib/db", async () => ({ db: (await import("@/lib/__tests__/helpers/db-mock")).db }))
 vi.mock("@/lib/auth", () => ({ getClerkId: vi.fn(), isDemo: vi.fn() }))
 vi.mock("@/lib/missions", () => ({ getUser: vi.fn(), awardXP: vi.fn() }))
-vi.mock("@/lib/rate-limit", () => ({ mutationRateLimit: {}, applyRateLimit: vi.fn() }))
+vi.mock("@/lib/rate-limit", () => ({ mutationRateLimit: {}, courseRewardLimit: { limit: vi.fn() }, applyRateLimit: vi.fn() }))
 
 import { getClerkId } from "@/lib/auth"
 import { getUser, awardXP } from "@/lib/missions"
-import { applyRateLimit } from "@/lib/rate-limit"
+import { applyRateLimit, courseRewardLimit } from "@/lib/rate-limit"
 import { POST } from "@/app/api/courses/route"
 
 const ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
@@ -23,6 +23,7 @@ beforeEach(() => {
   vi.mocked(getClerkId).mockResolvedValue("clerk_1")
   vi.mocked(getUser).mockResolvedValue(makeUser() as never)
   vi.mocked(applyRateLimit).mockResolvedValue(null)
+  vi.mocked(courseRewardLimit.limit).mockResolvedValue({ success: true } as never)
   vi.mocked(awardXP).mockResolvedValue({ leveledUp: false, newRank: 1, newXp: 50 })
 })
 
@@ -52,33 +53,40 @@ describe("POST /api/courses add", () => {
 
 describe("POST /api/courses complete", () => {
   it("pays the completion XP once, within the daily allowance", async () => {
-    queueDb([{ totalLessons: 10 }], [{ count: 1 }], [{ id: ID }])
+    queueDb([{ id: ID, totalLessons: 10 }], [])
     const body = await (await post({ action: "complete", id: ID })).json()
     expect(body.xpEarned).toBe(XP_VALUES.COMPLETE_COURSE)
     expect(awardXP).toHaveBeenCalledWith("user-1", XP_VALUES.COMPLETE_COURSE)
+    expect(courseRewardLimit.limit).toHaveBeenCalledWith("user-1")
   })
 
-  it("completes without XP past the daily allowance", async () => {
-    queueDb([{ totalLessons: 10 }], [{ count: 2 }], [{ id: ID }])
+  it("completes without XP once the atomic daily allowance is used up", async () => {
+    vi.mocked(courseRewardLimit.limit).mockResolvedValue({ success: false } as never)
+    queueDb([{ id: ID, totalLessons: 10 }])
     expect((await (await post({ action: "complete", id: ID })).json()).xpEarned).toBe(0)
     expect(awardXP).not.toHaveBeenCalled()
   })
 
-  it("completes without XP for short courses", async () => {
-    queueDb([{ totalLessons: 1 }], [{ count: 0 }], [{ id: ID }])
+  it("completes without XP, and without spending an allowance slot, for short courses", async () => {
+    queueDb([{ id: ID, totalLessons: 1 }])
     await post({ action: "complete", id: ID })
+    expect(awardXP).not.toHaveBeenCalled()
+    expect(courseRewardLimit.limit).not.toHaveBeenCalled()
+  })
+
+  it("completes without XP when the limiter is unreachable", async () => {
+    vi.mocked(courseRewardLimit.limit).mockRejectedValue(new Error("redis down"))
+    queueDb([{ id: ID, totalLessons: 10 }])
+    const res = await post({ action: "complete", id: ID })
+    expect(res.status).toBe(200)
     expect(awardXP).not.toHaveBeenCalled()
   })
 
-  it("pays nothing when another request already completed it", async () => {
-    queueDb([{ totalLessons: 10 }], [{ count: 0 }], [])
-    await post({ action: "complete", id: ID })
-    expect(awardXP).not.toHaveBeenCalled()
-  })
-
-  it("does nothing for an unknown or already completed course", async () => {
+  it("pays nothing and takes no slot when another request already completed it", async () => {
     queueDb([])
     expect((await (await post({ action: "complete", id: ID })).json()).course).toBeNull()
-    expect(dbOps()).toEqual(["select"])
+    expect(awardXP).not.toHaveBeenCalled()
+    expect(courseRewardLimit.limit).not.toHaveBeenCalled()
+    expect(dbOps()).toEqual(["update"])
   })
 })
