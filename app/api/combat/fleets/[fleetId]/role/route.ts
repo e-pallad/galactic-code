@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 import { requireUnlock } from "@/lib/unlocks-server"
+import { readJson } from "@/lib/http"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ fleetId: string }> }) {
   const clerkId = await getClerkId()
@@ -19,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ fleetI
   if (limited) return limited
 
   const { fleetId } = await params
-  const body = await req.json() as unknown
+  const body = await readJson(req)
   const parsed = z.object({
     targetUserId: z.string().uuid(),
     role: z.enum(["officer", "pilot"]),

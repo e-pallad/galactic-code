@@ -8,6 +8,7 @@ import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
+import { readJson } from "@/lib/http"
 
 const schema = z.object({
   missionId: z.string().uuid(),
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await req.json() as unknown
+  const body = await readJson(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 

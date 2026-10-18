@@ -6,6 +6,7 @@ import { getUser } from "@/lib/missions"
 import { getClerkId, isDemo } from "@/lib/auth"
 import { isValidTimezone } from "@/lib/timezone"
 import { z } from "zod"
+import { readJson } from "@/lib/http"
 
 const schema = z.object({
   track: z.string().min(1).max(50),
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   const userId = await getClerkId()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await req.json() as unknown
+  const body = await readJson(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 

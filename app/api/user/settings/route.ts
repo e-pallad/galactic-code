@@ -6,6 +6,7 @@ import { getClerkId, isDemo } from "@/lib/auth"
 import { isValidTimezone } from "@/lib/timezone"
 import { eq, and } from "drizzle-orm"
 import { z } from "zod"
+import { readJson } from "@/lib/http"
 
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -24,7 +25,7 @@ export async function PATCH(req: Request) {
   const clerkId = await getClerkId()
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const body = await req.json() as unknown
+  const body = await readJson(req)
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
 

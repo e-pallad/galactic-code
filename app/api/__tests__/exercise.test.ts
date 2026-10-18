@@ -32,6 +32,11 @@ describe("POST /api/progress/exercise", () => {
     expect((await post({ exerciseId: EXERCISE_ID })).status).toBe(401)
   })
 
+  it("answers 400, not 500, for a body that isn't JSON", async () => {
+    const res = await POST(new Request("http://test.local/api/progress/exercise", { method: "POST", body: "{nope" }))
+    expect(res.status).toBe(400)
+  })
+
   it("rejects a malformed exercise id", async () => {
     expect((await post({ exerciseId: "nope" })).status).toBe(400)
     expect((await post({})).status).toBe(400)
