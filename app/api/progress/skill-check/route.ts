@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { skillCheckAttempts, skillCheckQuestions, missionProgress } from "@/lib/db/schema"
+import { skillCheckAttempts, skillCheckQuestions, skillCheckRewards, missionProgress } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES, getRankFromXP } from "@/lib/xp"
@@ -23,19 +23,11 @@ const schema = z.object({
 })
 
 // XP/credits are awarded per tier reached (attempt < pass < perfect), and each
-// user can only ever earn up to the perfect-tier total per mission: retries pay
-// out the difference to the best previous attempt, never the full tier again.
-function xpForTier(passed: boolean, perfect: boolean): number {
-  if (perfect) return XP_VALUES.SKILL_CHECK_PERFECT
-  if (passed) return XP_VALUES.SKILL_CHECK_PASS
-  return XP_VALUES.SKILL_CHECK_ATTEMPT
-}
-
-function creditsForTier(passed: boolean, perfect: boolean): number {
-  if (perfect) return CREDIT_VALUES.SKILL_CHECK_PERFECT
-  if (passed) return CREDIT_VALUES.SKILL_CHECK_PASS
-  return 0
-}
+// tier pays out once per pilot and mission: a retry only pays the tiers it newly
+// reaches. Tier 1 = attempt, 2 = pass, 3 = perfect; the amounts below are the
+// step from the previous tier, so reaching perfect in one go sums to the full 35 XP.
+const TIER_XP = [XP_VALUES.SKILL_CHECK_ATTEMPT, XP_VALUES.SKILL_CHECK_PASS - XP_VALUES.SKILL_CHECK_ATTEMPT, XP_VALUES.SKILL_CHECK_PERFECT - XP_VALUES.SKILL_CHECK_PASS]
+const TIER_CREDITS = [0, CREDIT_VALUES.SKILL_CHECK_PASS, CREDIT_VALUES.SKILL_CHECK_PERFECT - CREDIT_VALUES.SKILL_CHECK_PASS]
 
 export async function POST(req: Request) {
   const clerkId = await getClerkId()
@@ -91,17 +83,17 @@ export async function POST(req: Request) {
   const passed = score >= 70
   const perfect = score === 100
 
-  // Cap rewards: pay only the delta above the best tier already earned here.
-  const prior = await db
-    .select({ passed: skillCheckAttempts.passed, perfect: skillCheckAttempts.perfect })
-    .from(skillCheckAttempts)
-    .where(and(eq(skillCheckAttempts.userId, user.id), eq(skillCheckAttempts.missionId, missionId)))
+  // Claim every tier this attempt reaches; the unique key means only the request
+  // that inserts a tier row gets paid for it, even when submissions race.
+  const reached = perfect ? 3 : passed ? 2 : 1
+  const claimedTiers = await db
+    .insert(skillCheckRewards)
+    .values(Array.from({ length: reached }, (_, i) => ({ userId: user.id, missionId, tier: i + 1 })))
+    .onConflictDoNothing()
+    .returning({ tier: skillCheckRewards.tier })
 
-  const bestPriorXp = prior.reduce((best, p) => Math.max(best, xpForTier(p.passed, p.perfect)), 0)
-  const bestPriorCredits = prior.reduce((best, p) => Math.max(best, creditsForTier(p.passed, p.perfect)), 0)
-
-  const xpEarned = Math.max(0, xpForTier(passed, perfect) - bestPriorXp)
-  const creditsEarned = Math.max(0, creditsForTier(passed, perfect) - bestPriorCredits)
+  const xpEarned = claimedTiers.reduce((sum, c) => sum + (TIER_XP[c.tier - 1] ?? 0), 0)
+  const creditsEarned = claimedTiers.reduce((sum, c) => sum + (TIER_CREDITS[c.tier - 1] ?? 0), 0)
 
   let result: { leveledUp: boolean; newRank: number; newXp: number } = {
     leveledUp: false,

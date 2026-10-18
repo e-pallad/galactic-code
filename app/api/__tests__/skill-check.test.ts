@@ -53,7 +53,7 @@ describe("POST /api/progress/skill-check", () => {
   })
 
   it("grades on the server, pays the perfect tier and returns the review", async () => {
-    queueDb([{ status: "COMPLETED" }], questions, [])
+    queueDb([{ status: "COMPLETED" }], questions, [{ tier: 1 }, { tier: 2 }, { tier: 3 }])
     const body = await (await post(answer(1, 2))).json()
     expect(body).toMatchObject({ score: 100, passed: true, perfect: true, xpEarned: XP_VALUES.SKILL_CHECK_PERFECT })
     expect(body.review).toEqual([
@@ -63,9 +63,15 @@ describe("POST /api/progress/skill-check", () => {
     expect(awardXP).toHaveBeenCalledWith("user-1", XP_VALUES.SKILL_CHECK_PERFECT)
   })
 
-  it("pays only the difference to the best earlier attempt", async () => {
-    queueDb([{ status: "SKIPPED" }], questions, [{ passed: true, perfect: false }])
+  it("pays only the tiers that were not claimed before", async () => {
+    queueDb([{ status: "SKIPPED" }], questions, [{ tier: 3 }])
     const body = await (await post(answer(1, 2))).json()
     expect(body.xpEarned).toBe(XP_VALUES.SKILL_CHECK_PERFECT - XP_VALUES.SKILL_CHECK_PASS)
+  })
+
+  it("pays nothing when a parallel submission already claimed every tier", async () => {
+    queueDb([{ status: "COMPLETED" }], questions, [])
+    expect((await (await post(answer(1, 2))).json()).xpEarned).toBe(0)
+    expect(awardXP).not.toHaveBeenCalled()
   })
 })

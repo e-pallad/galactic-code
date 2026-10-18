@@ -5,7 +5,7 @@ import { getUser, awardXP, updateStreak, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES, getRankFromXP } from "@/lib/xp"
 import { CREDIT_VALUES, awardCredits } from "@/lib/combat"
-import { eq, sql, and, lt, inArray } from "drizzle-orm"
+import { eq, sql, and, lt, inArray, notInArray } from "drizzle-orm"
 import { z } from "zod"
 import { localDateString } from "@/lib/timezone"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
@@ -53,21 +53,12 @@ export async function POST(req: Request) {
     if (!allDone) return NextResponse.json({ error: "Complete previous missions first" }, { status: 422 })
   }
 
-  // Check existing progress to prevent re-awarding XP. A mission is already
-  // rewarded if it's COMPLETED (any action), or SKIPPED and being skipped
-  // again — otherwise repeat skips would farm XP forever. Upgrading
-  // SKIPPED -> COMPLETED still pays the completion XP.
+  // Never downgrade a completed mission back to SKIPPED.
   const [existing] = await db
     .select({ status: missionProgress.status })
     .from(missionProgress)
     .where(and(eq(missionProgress.userId, user.id), eq(missionProgress.missionId, missionId)))
     .limit(1)
-
-  const alreadyCompleted =
-    existing?.status === "COMPLETED" ||
-    (existing?.status === "SKIPPED" && action === "skip")
-
-  // Never downgrade a completed mission back to SKIPPED.
   if (existing?.status === "COMPLETED" && action === "skip") {
     return NextResponse.json({ success: true, xpEarned: 0, leveledUp: false, newRank: getRankFromXP(user.totalXp), newXp: user.totalXp, newStreak: user.streak, newMedals: [] })
   }
@@ -79,6 +70,9 @@ export async function POST(req: Request) {
     : XP_VALUES.COMPLETE_MISSION
 
   const status = action === "skip" ? "SKIPPED" : "COMPLETED"
+  // A skip is final for skipping (repeat skips would farm XP forever); a completion
+  // is final for everything. Skipped -> completed still pays the completion XP.
+  const settled = action === "skip" ? (["COMPLETED", "SKIPPED"] as const) : (["COMPLETED"] as const)
 
   let result: { leveledUp: boolean; newRank: number; newXp: number } = {
     leveledUp: false,
@@ -88,8 +82,10 @@ export async function POST(req: Request) {
 
   // drizzle-orm/neon-http uses a batch HTTP API that does not support
   // interactive transactions (the driver throws on db.transaction()).
-  // Run each step as a sequential await instead.
-  await db
+  // The upsert doubles as the reward claim: its WHERE only lets the first request
+  // that moves the mission out of an unrewarded state through, so a double click
+  // or parallel requests can't pay twice, and settled rows are left untouched.
+  const claimed = await db
     .insert(missionProgress)
     .values({
       userId: user.id,
@@ -102,16 +98,18 @@ export async function POST(req: Request) {
     .onConflictDoUpdate({
       target: [missionProgress.userId, missionProgress.missionId],
       set: { status, xpEarned: xpAmount, usedFocusCycle: usedFocusCycle ?? false, completedAt: action === "complete" ? new Date() : null },
+      setWhere: notInArray(missionProgress.status, [...settled]),
     })
+    .returning({ id: missionProgress.id })
+  const fresh = claimed.length > 0
 
-  // Only award XP if this is a new completion (not re-completing an already-completed mission)
-  if (!alreadyCompleted) {
+  if (fresh) {
     result = await awardXP(user.id, xpAmount)
   }
 
   // Count toward daily quota only on fresh completions — re-completing an
   // already-completed mission must not inflate goals or the heatmap.
-  if (action === "complete" && !alreadyCompleted) {
+  if (action === "complete" && fresh) {
     const today = localDateString(user.timezone)
     await db
       .insert(dailyLogs)
@@ -123,7 +121,7 @@ export async function POST(req: Request) {
   }
 
   // Award credits for mission completion (only for fresh completions)
-  if (!alreadyCompleted && action === "complete") {
+  if (fresh && action === "complete") {
     const typeMap: Record<string, keyof typeof CREDIT_VALUES> = {
       "briefing": "MISSION_BRIEFING",
       "training-op": "MISSION_TRAINING_OP",
@@ -141,7 +139,7 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     success: true,
-    xpEarned: alreadyCompleted ? 0 : xpAmount,
+    xpEarned: fresh ? xpAmount : 0,
     leveledUp: result.leveledUp,
     newRank: result.newRank,
     newXp: result.newXp,
