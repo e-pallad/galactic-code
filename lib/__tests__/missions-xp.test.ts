@@ -135,8 +135,14 @@ describe("updateStreak", () => {
   })
 
   it("pays the 7-day streak bonus when the streak reaches 7", async () => {
-    h.results.push([user({ streak: 6 })], [], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    h.results.push([user({ streak: 6 })], [{ id: "u1" }], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
     expect(await updateStreak("u1")).toBe(7)
     expect(updates()).toBe(2) // the streak write plus the bonus award
+  })
+
+  it("pays no bonus when a concurrent request already advanced the streak", async () => {
+    h.results.push([user({ streak: 6 })], [])
+    expect(await updateStreak("u1")).toBe(7)
+    expect(updates()).toBe(1) // only the lost streak write, no bonus award
   })
 })
