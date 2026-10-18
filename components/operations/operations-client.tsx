@@ -49,12 +49,12 @@ export function OperationsClient({ operations: initialOps, systems }: Operations
           action: "create",
           trackId: system.trackId,
           systemNumber: system.number,
-          title: system.operationTitle,
-          description: system.operationDescription,
         }),
       })
-      const data = await res.json() as { operation: Operation }
-      setOps(prev => [...prev, data.operation])
+      if (!res.ok) return
+      const data = await res.json() as { operation: Operation | null }
+      const created = data.operation
+      if (created) setOps(prev => (prev.some(o => o.id === created.id) ? prev : [...prev, created]))
       router.refresh()
     } finally {
       setLoading(false)
