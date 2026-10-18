@@ -1,12 +1,11 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { resetDemoUser } from "@/lib/demo"
-import { demoRateLimit } from "@/lib/rate-limit"
+import { demoRateLimit, clientIp } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
-export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? req.headers.get("x-real-ip") ?? "unknown"
-  const { success } = await demoRateLimit.limit(ip)
+export async function POST() {
+  const { success } = await demoRateLimit.limit(await clientIp())
   if (!success) return NextResponse.json({ error: "Too many requests" }, { status: 429 })
 
   try {
