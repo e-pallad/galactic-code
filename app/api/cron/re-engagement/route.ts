@@ -1,42 +1,31 @@
 import { NextRequest } from "next/server"
 import { db } from "@/lib/db"
 import { users } from "@/lib/db/schema"
-import { isNull, eq, and } from "drizzle-orm"
+import { isNull, eq, and, gte, lt } from "drizzle-orm"
 import { sendReEngagementEmail } from "@/lib/email"
+import { isCronAuthorized, sendInBatches } from "@/lib/cron"
 import { subDays, startOfDay } from "date-fns"
 
 export async function GET(req: NextRequest) {
-  // Vercel Cron invokes with `Authorization: Bearer ${CRON_SECRET}`;
-  // x-cron-secret is kept for manual triggering.
-  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  const secret = bearer ?? req.headers.get("x-cron-secret")
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  if (!isCronAuthorized(req)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  // Pilots whose last visit was the day before yesterday.
   const twoDaysAgo = startOfDay(subDays(new Date(), 2))
   const threeDaysAgo = startOfDay(subDays(new Date(), 3))
 
-  const inactive = await db
+  const targets = await db
     .select()
     .from(users)
-    .where(and(isNull(users.deletedAt), eq(users.emailOptOut, false)))
+    .where(and(
+      isNull(users.deletedAt),
+      eq(users.emailOptOut, false),
+      gte(users.lastSeenAt, threeDaysAgo),
+      lt(users.lastSeenAt, twoDaysAgo),
+    ))
 
-  const targets = inactive.filter(u => {
-    if (!u.lastSeenAt) return false
-    const last = startOfDay(new Date(u.lastSeenAt))
-    return last >= threeDaysAgo && last < twoDaysAgo
-  })
+  const { sent, failed } = await sendInBatches(targets, (u) => sendReEngagementEmail(u.id, u.email, u.name, u.streak))
 
-  let sent = 0
-  for (const user of targets) {
-    try {
-      await sendReEngagementEmail(user.id, user.email, user.name, user.streak)
-      sent++
-    } catch {
-      // continue to next user
-    }
-  }
-
-  return Response.json({ sent, total: targets.length })
+  return Response.json({ sent, failed, total: targets.length })
 }

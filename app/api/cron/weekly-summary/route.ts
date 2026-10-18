@@ -3,60 +3,42 @@ import { db } from "@/lib/db"
 import { users, dailyLogs } from "@/lib/db/schema"
 import { isNull, gte, eq, and, sql } from "drizzle-orm"
 import { sendWeeklySummaryEmail } from "@/lib/email"
+import { isCronAuthorized, sendInBatches } from "@/lib/cron"
 import { subDays, startOfDay } from "date-fns"
 import { getRankProgress } from "@/lib/xp"
 
 export async function GET(req: NextRequest) {
-  // Vercel Cron invokes with `Authorization: Bearer ${CRON_SECRET}`;
-  // x-cron-secret is kept for manual triggering.
-  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
-  const secret = bearer ?? req.headers.get("x-cron-secret")
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  if (!isCronAuthorized(req)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const weekAgoDate = startOfDay(subDays(new Date(), 7)).toISOString().slice(0, 10)
 
-  // Batch all users and their weekly stats in two queries instead of N+1
-  const allUsers = await db
-    .select()
-    .from(users)
-    .where(and(isNull(users.deletedAt), eq(users.emailOptOut, false)))
-
-  const weeklyStats = await db
+  // One query: only pilots with activity logged this week come back, with their sums.
+  const active = await db
     .select({
-      userId: dailyLogs.userId,
+      user: users,
       xpThisWeek: sql<number>`coalesce(sum(${dailyLogs.xpEarned}), 0)`,
       missionsThisWeek: sql<number>`coalesce(sum(${dailyLogs.missionsCompleted}), 0)`,
     })
-    .from(dailyLogs)
-    .where(gte(dailyLogs.date, weekAgoDate))
-    .groupBy(dailyLogs.userId)
+    .from(users)
+    .innerJoin(dailyLogs, eq(dailyLogs.userId, users.id))
+    .where(and(isNull(users.deletedAt), eq(users.emailOptOut, false), gte(dailyLogs.date, weekAgoDate)))
+    .groupBy(users.id)
 
-  const statsByUser = new Map(weeklyStats.map(s => [s.userId, s]))
+  const targets = active
+    .map((r) => ({ user: r.user, xpThisWeek: Number(r.xpThisWeek), missionsThisWeek: Number(r.missionsThisWeek) }))
+    .filter((r) => r.xpThisWeek > 0 || r.missionsThisWeek > 0)
 
-  let sent = 0
-  for (const user of allUsers) {
-    try {
-      const stats = statsByUser.get(user.id)
-      const xpThisWeek = Number(stats?.xpThisWeek ?? 0)
-      const missionsThisWeek = Number(stats?.missionsThisWeek ?? 0)
+  const { sent, failed } = await sendInBatches(targets, ({ user, xpThisWeek, missionsThisWeek }) =>
+    sendWeeklySummaryEmail(user.id, user.email, user.name, {
+      xpThisWeek,
+      missionsThisWeek,
+      totalXp: user.totalXp,
+      streak: user.streak,
+      rankLabel: getRankProgress(user.totalXp).label,
+    })
+  )
 
-      if (xpThisWeek === 0 && missionsThisWeek === 0) continue
-
-      const rankInfo = getRankProgress(user.totalXp)
-      await sendWeeklySummaryEmail(user.id, user.email, user.name, {
-        xpThisWeek,
-        missionsThisWeek,
-        totalXp: user.totalXp,
-        streak: user.streak,
-        rankLabel: rankInfo.label,
-      })
-      sent++
-    } catch {
-      // continue
-    }
-  }
-
-  return Response.json({ sent, total: allUsers.length })
+  return Response.json({ sent, failed, total: targets.length })
 }
