@@ -67,4 +67,4 @@ npm test
 - Settings lives in the top bar, not the nav
 
 ## Env vars
-All validated via Zod in `lib/env.ts`. See `.env.example`.
+Checked against the Zod schema in `lib/env.ts` at server start (`instrumentation.ts`); problems are logged, not fatal, because modules read `process.env` lazily so builds and tests run without secrets. See `.env.example`.

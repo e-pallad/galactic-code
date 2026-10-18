@@ -13,4 +13,14 @@ const schema = z.object({
   NEXT_PUBLIC_APP_URL: z.string().url(),
 })
 
-export const env = schema.parse(process.env)
+/**
+ * Checks the environment against the schema and returns the problems, one line
+ * each. It reports instead of throwing: modules read `process.env` lazily on
+ * purpose (builds and tests run without secrets), so this is for a loud startup
+ * log (see instrumentation.ts), not a gate.
+ */
+export function validateEnv(source: Record<string, string | undefined> = process.env): string[] {
+  const result = schema.safeParse(source)
+  if (result.success) return []
+  return result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`)
+}

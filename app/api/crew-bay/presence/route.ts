@@ -19,32 +19,49 @@ async function getCrewCount(redis: Awaited<ReturnType<typeof getRedis>>): Promis
   return await redis.zcard(PRESENCE_KEY)
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const encoder = new TextEncoder()
+  let interval: ReturnType<typeof setInterval> | undefined
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  let closed = false
+
+  // Runs on disconnect (cancel/abort), on the 55s cap and when the stream breaks.
+  // A function returned from start() is ignored by ReadableStream, so the timers
+  // must be torn down from here or they outlive the client.
+  const stop = (controller?: ReadableStreamDefaultController) => {
+    if (closed) return
+    closed = true
+    clearInterval(interval)
+    clearTimeout(timeout)
+    try { controller?.close() } catch {}
+  }
 
   const stream = new ReadableStream({
     async start(controller) {
       const sendCount = async () => {
+        if (closed) return
+        let count: number
         try {
-          const redis = await getRedis()
-          const count = await getCrewCount(redis)
-          const data = JSON.stringify({ count })
-          controller.enqueue(encoder.encode(`event: crew-count\ndata: ${data}\n\n`))
-        } catch {}
+          count = await getCrewCount(await getRedis())
+        } catch {
+          return // transient Redis error: try again on the next tick
+        }
+        if (closed) return
+        try {
+          controller.enqueue(encoder.encode(`event: crew-count\ndata: ${JSON.stringify({ count })}\n\n`))
+        } catch {
+          stop() // the client is gone
+        }
       }
 
+      req.signal.addEventListener("abort", () => stop(controller))
       await sendCount()
-      const interval = setInterval(sendCount, 5000)
-
-      const timeout = setTimeout(() => {
-        clearInterval(interval)
-        controller.close()
-      }, 55000) // close before Vercel 60s limit
-
-      return () => {
-        clearInterval(interval)
-        clearTimeout(timeout)
-      }
+      if (closed) return
+      interval = setInterval(sendCount, 5000)
+      timeout = setTimeout(() => stop(controller), 55000) // close before Vercel 60s limit
+    },
+    cancel() {
+      stop()
     },
   })
 
