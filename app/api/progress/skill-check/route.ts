@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { skillCheckAttempts, skillCheckQuestions } from "@/lib/db/schema"
+import { skillCheckAttempts, skillCheckQuestions, missionProgress } from "@/lib/db/schema"
 import { getUser, awardXP, checkMedals } from "@/lib/missions"
 import { getClerkId } from "@/lib/auth"
 import { XP_VALUES, getRankFromXP } from "@/lib/xp"
@@ -53,9 +53,19 @@ export async function POST(req: Request) {
 
   const { missionId, answers } = parsed.data
 
+  // Skill checks come after the mission: it has to be completed or skipped first.
+  const [progress] = await db
+    .select({ status: missionProgress.status })
+    .from(missionProgress)
+    .where(and(eq(missionProgress.userId, user.id), eq(missionProgress.missionId, missionId)))
+    .limit(1)
+  if (!progress || (progress.status !== "COMPLETED" && progress.status !== "SKIPPED")) {
+    return NextResponse.json({ error: "Finish the mission first" }, { status: 422 })
+  }
+
   // Grade server-side against the question bank — never trust a client score.
   const questions = await db
-    .select({ id: skillCheckQuestions.id, correctIndex: skillCheckQuestions.correctIndex })
+    .select({ id: skillCheckQuestions.id, correctIndex: skillCheckQuestions.correctIndex, explanation: skillCheckQuestions.explanation })
     .from(skillCheckQuestions)
     .where(eq(skillCheckQuestions.missionId, missionId))
 
@@ -71,6 +81,9 @@ export async function POST(req: Request) {
     if (!questions.some((q) => q.id === a.questionId)) {
       return NextResponse.json({ error: "Answer for unknown question" }, { status: 400 })
     }
+  }
+  if (answerMap.size !== questions.length) {
+    return NextResponse.json({ error: "Answer every question" }, { status: 400 })
   }
 
   const correct = questions.filter((q) => answerMap.get(q.id) === q.correctIndex).length
@@ -120,5 +133,11 @@ export async function POST(req: Request) {
     perfect,
     leveledUp: result.leveledUp,
     newMedals,
+    review: questions.map((q) => ({
+      questionId: q.id,
+      selectedIndex: answerMap.get(q.id) ?? null,
+      correctIndex: q.correctIndex,
+      explanation: q.explanation,
+    })),
   })
 }
