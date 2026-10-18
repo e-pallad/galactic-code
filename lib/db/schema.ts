@@ -296,6 +296,8 @@ export const starMapProgress = pgTable(
     nodeType: nodeTypeEnum("node_type").notNull(),
     status: nodeStatusEnum("status").default("NOT_STARTED").notNull(),
     completedAt: timestamp("completed_at"),
+    // Set once when the node's XP is paid; survives un-checking so toggling can't re-pay.
+    xpAwardedAt: timestamp("xp_awarded_at"),
   },
   (t) => [unique().on(t.userId, t.roadmapSlug, t.nodeId)]
 )

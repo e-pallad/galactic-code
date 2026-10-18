@@ -8,29 +8,7 @@ import { starMapProgress } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
 import { StarMapClient } from "@/components/star-map/star-map-client"
 import { BackLink } from "@/components/layout/back-link"
-
-interface MapNode {
-  id: string
-  type: "topic" | "subtopic"
-  label: string
-  children?: MapNode[]
-}
-
-interface MapData {
-  slug: string
-  title: string
-  description: string
-  nodes: MapNode[]
-}
-
-async function getMapData(slug: string): Promise<MapData | null> {
-  try {
-    const data = await import(`@/content/star-maps/${slug}.json`, { with: { type: "json" } }) as { default: MapData }
-    return data.default
-  } catch {
-    return null
-  }
-}
+import { getStarMap } from "@/lib/star-maps"
 
 export default async function StarMapSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -40,7 +18,7 @@ export default async function StarMapSlugPage({ params }: { params: Promise<{ sl
   const user = await getUser(clerkId)
   if (!user) redirect("/sign-in")
 
-  const mapData = await getMapData(slug)
+  const mapData = await getStarMap(slug)
   if (!mapData) notFound()
 
   const progress = await db.select().from(starMapProgress)
