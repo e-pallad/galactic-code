@@ -61,6 +61,13 @@ describe("awardXP", () => {
     expect(setArgs().some((s) => "rank" in s)).toBe(false)
   })
 
+  it("adds the award to the pilot's fleet total", async () => {
+    h.results.push([{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    await awardXP("u1", 15)
+    expect(setArgs().some((s) => "totalXp" in s && Object.keys(s).length === 1)).toBe(true)
+    expect(updates()).toBe(2)
+  })
+
   it("throws when the user does not exist", async () => {
     h.results.push([])
     await expect(awardXP("missing", 15)).rejects.toThrow("User not found")
@@ -71,7 +78,7 @@ describe("awardDailyLoginXP", () => {
   it("pays XP the first time each day", async () => {
     h.results.push([{ timezone: "UTC" }], [{ id: "log" }], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
     await awardDailyLoginXP("u1")
-    expect(updates()).toBe(1)
+    expect(updates()).toBe(2) // the XP increment plus the fleet total
   })
 
   it("is a no-op when today's log already exists", async () => {
@@ -137,7 +144,7 @@ describe("updateStreak", () => {
   it("pays the 7-day streak bonus when the streak reaches 7", async () => {
     h.results.push([user({ streak: 6 })], [{ id: "u1" }], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
     expect(await updateStreak("u1")).toBe(7)
-    expect(updates()).toBe(2) // the streak write plus the bonus award
+    expect(updates()).toBe(3) // the streak write, the bonus award and its fleet total
   })
 
   it("pays no bonus when a concurrent request already advanced the streak", async () => {

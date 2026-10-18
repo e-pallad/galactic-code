@@ -1,6 +1,6 @@
 import { cache } from "react"
 import { db } from "@/lib/db"
-import { users, dailyLogs, medals } from "@/lib/db/schema"
+import { users, dailyLogs, medals, fleets, fleetMembers } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
 import { DEMO_CLERK_ID } from "@/lib/demo"
 import { getRankFromXP, didRankUp, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
@@ -84,6 +84,13 @@ export async function awardXP(
   if (newRank !== updated.rank) {
     await db_.update(users).set({ rank: newRank }).where(eq(users.id, userId))
   }
+
+  // Keep the pilot's fleet total in step (fleet = sum of its members' XP). Join and
+  // leave recompute it from scratch; this covers every award in between.
+  await db_
+    .update(fleets)
+    .set({ totalXp: sql`${fleets.totalXp} + ${amount}` })
+    .where(sql`${fleets.id} = (SELECT ${fleetMembers.fleetId} FROM ${fleetMembers} WHERE ${fleetMembers.userId} = ${userId})`)
 
   const dateOnly = localDateString(updated.timezone, opts.date ?? new Date())
 
