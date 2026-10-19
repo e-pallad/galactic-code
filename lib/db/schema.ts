@@ -243,6 +243,20 @@ export const skillCheckAttempts = pgTable("skill_check_attempts", {
   attemptedAt: timestamp("attempted_at").defaultNow().notNull(),
 })
 
+// One row per reward tier a pilot has been paid for a skill check (1 attempt,
+// 2 pass, 3 perfect). The unique key is the exactly-once guard for payouts.
+export const skillCheckRewards = pgTable(
+  "skill_check_rewards",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    missionId: uuid("mission_id").notNull().references(() => missions.id, { onDelete: "cascade" }),
+    tier: integer("tier").notNull(),
+    claimedAt: timestamp("claimed_at").defaultNow().notNull(),
+  },
+  (t) => [unique().on(t.userId, t.missionId, t.tier)]
+)
+
 export const missionNotes = pgTable(
   "mission_notes",
   {
@@ -296,6 +310,8 @@ export const starMapProgress = pgTable(
     nodeType: nodeTypeEnum("node_type").notNull(),
     status: nodeStatusEnum("status").default("NOT_STARTED").notNull(),
     completedAt: timestamp("completed_at"),
+    // Set once when the node's XP is paid; survives un-checking so toggling can't re-pay.
+    xpAwardedAt: timestamp("xp_awarded_at"),
   },
   (t) => [unique().on(t.userId, t.roadmapSlug, t.nodeId)]
 )

@@ -8,6 +8,8 @@ import Anthropic from "@anthropic-ai/sdk"
 import { aiRateLimit, applyRateLimit } from "@/lib/rate-limit"
 import { getRankFromXP } from "@/lib/xp"
 
+const DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+
 export async function GET() {
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ disabled: true })
@@ -41,23 +43,34 @@ export async function POST() {
   const user = await getUser(clerkId)
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
+  // A still-fresh recommendation is served as is: no model call, no rate-limit token.
+  const [cached] = await db.select().from(aiRecommendations).where(eq(aiRecommendations.userId, user.id)).limit(1)
+  if (cached && new Date(cached.expiresAt) > new Date()) {
+    return NextResponse.json({ content: cached.content, cached: true })
+  }
+
   const limited = await applyRateLimit(aiRateLimit, user.id)
   if (limited) return limited
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
-  const message = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 512,
-    messages: [{
-      role: "user",
-      content: `You are a learning coach for Galactic Code, a space-themed programming platform.
+  let content: string
+  try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const message = await client.messages.create({
+      model: process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL,
+      max_tokens: 512,
+      messages: [{
+        role: "user",
+        content: `You are a learning coach for Galactic Code, a space-themed programming platform.
 The pilot's stats: Track=${user.track}, Rank=${getRankFromXP(user.totalXp)}, XP=${user.totalXp}, Streak=${user.streak} days.
 Give 3 specific, actionable recommendations to improve their coding journey. Keep it short, motivating, space-themed. Max 150 words.`,
-    }],
-  })
-
-  const content = message.content[0]?.type === "text" ? message.content[0].text : ""
+      }],
+    })
+    content = message.content[0]?.type === "text" ? message.content[0].text : ""
+  } catch (err) {
+    console.error("[ai/recommendations] model call failed:", err)
+    return NextResponse.json({ error: "Recommendations are unavailable right now" }, { status: 502 })
+  }
+  if (!content) return NextResponse.json({ error: "Recommendations are unavailable right now" }, { status: 502 })
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
 
   await db.insert(aiRecommendations)

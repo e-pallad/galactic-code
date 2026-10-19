@@ -10,11 +10,16 @@ export const XP_VALUES = {
   SKIP_MISSION: 2,
   STAR_MAP_TOPIC: 10,
   STAR_MAP_SUBTOPIC: 5,
-  ADD_COURSE: 10,
   COMPLETE_COURSE: 50,
   STREAK_BONUS_7: 10,
   STREAK_BONUS_30: 25,
 } as const
+
+/** External courses are self-reported, so their XP is capped: 2 rewarded completions per rolling 24h (see `courseRewardLimit`), on courses of 5+ lessons. */
+export const COURSE_REWARD_LIMITS = { minLessons: 5, maxTracked: 50 } as const
+
+/** Referral XP is paid to a referrer for at most this many sign-ups, so throwaway accounts can't farm it. */
+export const REFERRAL_LIMITS = { xpEach: 50, maxRewarded: 25 } as const
 
 export const RANK_THRESHOLDS: { rank: number; xpRequired: number; label: string }[] = [
   { rank: 1,  xpRequired: 0,     label: "Cadet" },

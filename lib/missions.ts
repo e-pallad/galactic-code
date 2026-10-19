@@ -1,18 +1,41 @@
 import { cache } from "react"
 import { db } from "@/lib/db"
-import { users, dailyLogs, medals } from "@/lib/db/schema"
+import { users, dailyLogs, medals, fleets, fleetMembers } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
+import { DEMO_CLERK_ID } from "@/lib/demo"
 import { getRankFromXP, didRankUp, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
 import { localDateString, calendarDaysBetween } from "@/lib/timezone"
 import type { User } from "@/lib/db/schema"
 
 type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 
+// A signed-in pilot normally gets their row from the Clerk webhook. If it hasn't
+// arrived yet (late delivery, outage, pilots that predate the webhook), create the
+// row from the Clerk session on first use instead of failing every request.
+async function provisionFromClerk(clerkId: string): Promise<User | null> {
+  if (clerkId === DEMO_CLERK_ID) return null
+  try {
+    const { currentUser } = await import("@clerk/nextjs/server")
+    const cu = await currentUser()
+    if (!cu || cu.id !== clerkId) return null
+    const email =
+      cu.emailAddresses.find((e) => e.id === cu.primaryEmailAddressId)?.emailAddress ??
+      cu.emailAddresses[0]?.emailAddress ??
+      ""
+    const name = [cu.firstName, cu.lastName].filter(Boolean).join(" ") || null
+    const user = await syncUser(clerkId, { email, name, avatarUrl: cu.imageUrl ?? null })
+    return user.deletedAt ? null : user
+  } catch (err) {
+    console.error("[getUser] provisioning from Clerk failed:", err)
+    return null
+  }
+}
+
 // Memoised per server render, so the dashboard layout, top bar and page share
 // one lookup. Outside a render (route handlers, scripts) it just calls through.
 export const getUser = cache(async (clerkId: string): Promise<User | null> => {
   const result = await db.select().from(users).where(and(eq(users.clerkId, clerkId), isNull(users.deletedAt))).limit(1)
-  return result[0] ?? null
+  return result[0] ?? (await provisionFromClerk(clerkId))
 })
 
 export async function syncUser(
@@ -61,6 +84,14 @@ export async function awardXP(
   if (newRank !== updated.rank) {
     await db_.update(users).set({ rank: newRank }).where(eq(users.id, userId))
   }
+
+  // Keep the pilot's fleet total in step (fleet = sum of its members' XP). Join and
+  // leave recompute it from scratch; this covers every award in between. IN, not =:
+  // nothing enforces one membership per pilot, and a scalar subquery would throw on two.
+  await db_
+    .update(fleets)
+    .set({ totalXp: sql`${fleets.totalXp} + ${amount}` })
+    .where(sql`${fleets.id} IN (SELECT ${fleetMembers.fleetId} FROM ${fleetMembers} WHERE ${fleetMembers.userId} = ${userId})`)
 
   const dateOnly = localDateString(updated.timezone, opts.date ?? new Date())
 
@@ -121,10 +152,14 @@ export async function updateStreak(userId: string): Promise<number> {
     }
   }
 
-  await db
+  // Compare-and-swap on the streak we read: when check-in and a mission race, only
+  // one of them advances the streak, so the 7/30-day bonuses can't pay twice.
+  const advanced = await db
     .update(users)
     .set({ streak: newStreak, lastSeenAt: new Date(), ...(usedFreeze ? { streakFreezeUsedAt: new Date() } : {}) })
-    .where(eq(users.id, userId))
+    .where(and(eq(users.id, userId), eq(users.streak, user.streak)))
+    .returning({ id: users.id })
+  if (advanced.length === 0) return newStreak
 
   if (user.streak < 7 && newStreak >= 7) await awardXP(userId, XP_VALUES.STREAK_BONUS_7)
   if (user.streak < 30 && newStreak >= 30) await awardXP(userId, XP_VALUES.STREAK_BONUS_30)

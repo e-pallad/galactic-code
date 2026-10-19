@@ -1,18 +1,33 @@
 import { ImageResponse } from "next/og"
 import { NextRequest } from "next/server"
+import { RANK_THRESHOLDS } from "@/lib/xp"
 
 export const runtime = "edge"
 
+function clampText(value: string | null, max: number, fallback: string): string {
+  const text = (value ?? "").trim()
+  return text ? Array.from(text).slice(0, max).join("") : fallback
+}
+
+function clampInt(value: string | null, min: number, max: number, fallback: number): number {
+  const n = Number.parseInt(value ?? "", 10)
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const type = searchParams.get("type") ?? "rank"
-  const name = searchParams.get("name") ?? "Cadet"
-  const rank = searchParams.get("rank") ?? "1"
-  const label = searchParams.get("label") ?? "Cadet"
-  const xp = searchParams.get("xp") ?? "0"
-  const medal = searchParams.get("medal") ?? ""
-  const icon = searchParams.get("icon") ?? "🏅"
-  const description = searchParams.get("description") ?? ""
+  // Public and unauthenticated, so every parameter is bounded: nothing here can
+  // be long enough to blow up the render, and the rank label always comes from
+  // the rank itself rather than from free text.
+  const type = searchParams.get("type") === "medal" ? "medal" : "rank"
+  const name = clampText(searchParams.get("name"), 40, "Cadet")
+  const rankNumber = clampInt(searchParams.get("rank"), 1, RANK_THRESHOLDS.length, 1)
+  const rank = String(rankNumber)
+  const label = RANK_THRESHOLDS[rankNumber - 1].label
+  const xp = String(clampInt(searchParams.get("xp"), 0, 10_000_000, 0))
+  const medal = clampText(searchParams.get("medal"), 60, "")
+  const icon = Array.from(searchParams.get("icon") ?? "").slice(0, 2).join("") || "🏅"
+  const description = clampText(searchParams.get("description"), 120, "")
 
   return new ImageResponse(
     (

@@ -7,6 +7,7 @@ import { eq, and } from "drizzle-orm"
 import { z } from "zod"
 import { mutationRateLimit, applyRateLimit } from "@/lib/rate-limit"
 import { requireUnlock } from "@/lib/unlocks-server"
+import { readJson } from "@/lib/http"
 
 export async function POST(req: Request, { params }: { params: Promise<{ fleetId: string }> }) {
   const clerkId = await getClerkId()
@@ -19,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ fleetId
   if (limited) return limited
 
   const { fleetId } = await params
-  const body = await req.json() as unknown
+  const body = await readJson(req)
   const parsed = z.object({ targetUserId: z.string().uuid() }).safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 })
   if (parsed.data.targetUserId === user.id) return NextResponse.json({ error: "You are already the captain" }, { status: 400 })

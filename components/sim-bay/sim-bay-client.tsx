@@ -45,6 +45,7 @@ export function SimBayClient({ courses: initialCourses }: SimBayClientProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "add", platform, url, title, totalLessons: parseInt(totalLessons) }),
       })
+      if (!res.ok) return
       const data = await res.json() as { course: Course }
       setCourses(prev => [...prev, data.course])
       setShowForm(false)
@@ -109,7 +110,7 @@ export function SimBayClient({ courses: initialCourses }: SimBayClientProps) {
               </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-                <Button type="submit" disabled={loading}>Add Course (+10 XP)</Button>
+                <Button type="submit" disabled={loading}>Add Course</Button>
               </div>
             </form>
           </CardContent>
@@ -155,7 +156,7 @@ export function SimBayClient({ courses: initialCourses }: SimBayClientProps) {
                   </Button>
                   {progress >= 100 && (
                     <Button size="sm" onClick={() => handleComplete(course.id)} disabled={loading}>
-                      Complete (+50 XP)
+                      Complete (up to +50 XP)
                     </Button>
                   )}
                 </div>

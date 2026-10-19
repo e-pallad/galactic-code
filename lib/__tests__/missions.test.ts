@@ -1,5 +1,7 @@
 import { describe, it, expect, vi } from "vitest"
 
+vi.mock("@clerk/nextjs/server", () => ({ currentUser: vi.fn().mockResolvedValue(null) }))
+
 vi.mock("@/lib/db", () => ({
   db: {
     select: vi.fn().mockReturnValue({

@@ -1,9 +1,9 @@
-const CACHE_NAME = "galactic-v1"
+const CACHE_NAME = "galactic-v2"
 const OFFLINE_URL = "/offline"
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL, "/"]))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll([OFFLINE_URL]))
   )
   self.skipWaiting()
 })

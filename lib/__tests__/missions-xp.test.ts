@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { PgDialect } from "drizzle-orm/pg-core"
+import type { SQL } from "drizzle-orm"
 
 // Queue-driven drizzle stand-in: every query-builder chain is a thenable that
 // resolves to the next queued result (empty array once the queue runs dry), and
@@ -61,6 +63,23 @@ describe("awardXP", () => {
     expect(setArgs().some((s) => "rank" in s)).toBe(false)
   })
 
+  it("adds the award to the pilot's fleet total", async () => {
+    h.results.push([{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    await awardXP("u1", 15)
+    expect(setArgs().some((s) => "totalXp" in s && Object.keys(s).length === 1)).toBe(true)
+    expect(updates()).toBe(2)
+  })
+
+  it("matches every fleet the pilot is in, not just one", async () => {
+    h.results.push([{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    await awardXP("u1", 15)
+    const rendered = h.calls
+      .filter((c) => c.method === "where")
+      .map((c) => new PgDialect().sqlToQuery(c.args[0] as SQL).sql)
+    const fleetWhere = rendered.find((q) => q.includes("fleet_members"))
+    expect(fleetWhere).toContain(" IN (SELECT ")
+  })
+
   it("throws when the user does not exist", async () => {
     h.results.push([])
     await expect(awardXP("missing", 15)).rejects.toThrow("User not found")
@@ -71,7 +90,7 @@ describe("awardDailyLoginXP", () => {
   it("pays XP the first time each day", async () => {
     h.results.push([{ timezone: "UTC" }], [{ id: "log" }], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
     await awardDailyLoginXP("u1")
-    expect(updates()).toBe(1)
+    expect(updates()).toBe(2) // the XP increment plus the fleet total
   })
 
   it("is a no-op when today's log already exists", async () => {
@@ -135,8 +154,14 @@ describe("updateStreak", () => {
   })
 
   it("pays the 7-day streak bonus when the streak reaches 7", async () => {
-    h.results.push([user({ streak: 6 })], [], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
+    h.results.push([user({ streak: 6 })], [{ id: "u1" }], [{ totalXp: 60, rank: 1, timezone: "UTC" }])
     expect(await updateStreak("u1")).toBe(7)
-    expect(updates()).toBe(2) // the streak write plus the bonus award
+    expect(updates()).toBe(3) // the streak write, the bonus award and its fleet total
+  })
+
+  it("pays no bonus when a concurrent request already advanced the streak", async () => {
+    h.results.push([user({ streak: 6 })], [])
+    expect(await updateStreak("u1")).toBe(7)
+    expect(updates()).toBe(1) // only the lost streak write, no bonus award
   })
 })

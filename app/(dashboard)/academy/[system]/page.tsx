@@ -79,9 +79,10 @@ export default async function SystemPage({ params }: { params: Promise<{ system:
   }, {})
 
   const progressMap = Object.fromEntries(userProgress.map(p => [p.missionId, p.status]))
-  const questionsByMission = questions.reduce<Record<string, typeof questions>>((acc, q) => {
-    if (!acc[q.missionId]) acc[q.missionId] = []
-    acc[q.missionId]!.push(q)
+  // The answer key and explanations stay on the server; the skill-check API
+  // returns them as a review once the answers are submitted.
+  const questionsByMission = questions.reduce<Record<string, { id: string; question: string; options: [string, string, string, string] }[]>>((acc, q) => {
+    ;(acc[q.missionId] ??= []).push({ id: q.id, question: q.question, options: q.options })
     return acc
   }, {})
 
