@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 import { NextResponse } from "next/server"
+import { DEMO_COOKIE, parseDemoSession } from "@/lib/demo-session"
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -19,6 +20,7 @@ const isPublicRoute = createRouteMatcher([
   "/pilots",
   "/curriculum(.*)",
   "/api/health",
+  "/api/csp-report",
   "/api/webhooks/clerk",
   "/api/demo/reset",
   "/api/cron/(.*)",
@@ -28,7 +30,7 @@ const isPublicRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) return NextResponse.next()
 
-  const isDemo = req.cookies.get("gc_demo")?.value === "1"
+  const isDemo = parseDemoSession(req.cookies.get(DEMO_COOKIE)?.value) !== null
   if (isDemo) return NextResponse.next()
 
   const { userId } = await auth()

@@ -1,10 +1,11 @@
 import { db } from "@/lib/db"
-import { users, missionProgress, dailyLogs, medals, missions, sectors, starSystems, ships, items, userInventory } from "@/lib/db/schema"
-import { eq, sql } from "drizzle-orm"
+import { users, missionProgress, dailyLogs, medals, missions, sectors, starSystems, ships, items, userInventory, battleLog } from "@/lib/db/schema"
+import { eq, sql, inArray, and, lt } from "drizzle-orm"
+import { demoClerkId } from "@/lib/demo-session"
 
-export const DEMO_CLERK_ID = "demo_user"
-
-export async function resetDemoUser(): Promise<void> {
+/** Creates the visitor's demo pilot, or puts the existing one back to the starting state. */
+export async function resetDemoUser(sessionId: string): Promise<void> {
+  const clerkId = demoClerkId(sessionId)
   // drizzle-orm/neon-http uses a batch HTTP API that does not support
   // interactive transactions (reading mid-tx and branching on results).
   // Run each step sequentially without a transaction wrapper instead.
@@ -12,7 +13,7 @@ export async function resetDemoUser(): Promise<void> {
   await db
     .insert(users)
     .values({
-      clerkId: DEMO_CLERK_ID,
+      clerkId,
       email: "demo@galactic.code",
       name: "Demo Pilot",
       avatarUrl: null,
@@ -42,7 +43,7 @@ export async function resetDemoUser(): Promise<void> {
   const [demoUser] = await db
     .select()
     .from(users)
-    .where(eq(users.clerkId, DEMO_CLERK_ID))
+    .where(eq(users.clerkId, clerkId))
     .limit(1)
 
   if (!demoUser) return
@@ -112,4 +113,24 @@ export async function resetDemoUser(): Promise<void> {
         set: { isEquipped: true },
       })
   }
+}
+
+/**
+ * Removes demo pilots nobody has touched since `olderThan` (a reset stamps
+ * lastSeenAt, and the cookie lives two hours). Everything hangs off users with
+ * ON DELETE CASCADE except battle_log.actor_user_id, which is cleared first.
+ * Works in bounded batches; returns how many pilots went.
+ */
+export async function deleteExpiredDemoUsers(olderThan: Date, batch = 500): Promise<number> {
+  const stale = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(sql`${users.clerkId} LIKE 'demo\\_%'`, lt(sql`coalesce(${users.lastSeenAt}, ${users.createdAt})`, olderThan)))
+    .limit(batch)
+  if (stale.length === 0) return 0
+
+  const ids = stale.map((u) => u.id)
+  await db.delete(battleLog).where(inArray(battleLog.actorUserId, ids))
+  await db.delete(users).where(inArray(users.id, ids))
+  return ids.length
 }

@@ -2,7 +2,7 @@ import { cache } from "react"
 import { db } from "@/lib/db"
 import { users, dailyLogs, medals, fleets, fleetMembers } from "@/lib/db/schema"
 import { eq, sql, isNull, and } from "drizzle-orm"
-import { DEMO_CLERK_ID } from "@/lib/demo"
+import { isDemoClerkId } from "@/lib/demo-session"
 import { getRankFromXP, didRankUp, XP_VALUES, MEDAL_DEFINITIONS } from "@/lib/xp"
 import { localDateString, calendarDaysBetween } from "@/lib/timezone"
 import type { User } from "@/lib/db/schema"
@@ -13,7 +13,7 @@ type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 // arrived yet (late delivery, outage, pilots that predate the webhook), create the
 // row from the Clerk session on first use instead of failing every request.
 async function provisionFromClerk(clerkId: string): Promise<User | null> {
-  if (clerkId === DEMO_CLERK_ID) return null
+  if (isDemoClerkId(clerkId)) return null
   try {
     const { currentUser } = await import("@clerk/nextjs/server")
     const cu = await currentUser()
